@@ -49,6 +49,7 @@ int array_max(const int *array, int length) {
 }
 
 void array_map(int *array, int length, int f(int)) {
+    if (!f) return;
     for (int i = 0; i < length; i++){
         array[i] = f(array[i]);
     }
@@ -56,6 +57,7 @@ void array_map(int *array, int length, int f(int)) {
 
 int *copy_array(const int *array, int length) {
     //what?
+    return NULL;
 }
 
 int **copy_array_of_arrays(const int **array_of_arrays, const int *array_lenghts, int array_amount){
