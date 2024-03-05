@@ -24,6 +24,8 @@ bool is_prime(int x){
     return true;
 }
 
+//asjdjkasjdjkasjkdjaskdjaskjdkdjkajaksdjaskd
+
 int storage_capacity(float d, float v){
     return 0;
 }
