@@ -24,26 +24,38 @@ bool is_prime(int x){
     return true;
 }
 
-//asjdjkasjdjkasjkdjaskdjaskjdkdjkajaksdjaskd
 
 int storage_capacity(float d, float v){
-    return 0;
+    return (int)(d/v);
 }
 
 void swap(int *x, int *y) {
-    return;
+    int aux = *y;
+    *y = *x;
+    *x = aux;
 }
 
 int array_max(const int *array, int length) {
-    return 0;
+    int max = array[0];
+
+    for (int i = 1; i < length; i++){
+        if (array[i] > max){
+            max = array[i];
+        }
+    }
+
+    return max;
+
 }
 
 void array_map(int *array, int length, int f(int)) {
-    return;
+    for (int i = 0; i < length; i++){
+        array[i] = f(array[i]);
+    }
 }
 
 int *copy_array(const int *array, int length) {
-    return NULL;
+    //what?
 }
 
 int **copy_array_of_arrays(const int **array_of_arrays, const int *array_lenghts, int array_amount){
