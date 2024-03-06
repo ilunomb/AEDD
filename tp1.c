@@ -73,10 +73,27 @@ void bubble_sort(int *array, int length){
 }
 
 bool array_equal(const int *array1, int length1, const int *array2, int length2){
+    if (array1 == NULL){
+        if (array2 == NULL) return true;
+
+        return false;
+    }
+
+    if (array2 == NULL) return false;
+
+    if (!(length1 == length2)) return false;
+
+    for (int i = 0; i < length1; i++){
+        if (!(array1[i] == array2[i])) return false;
+    }
+
     return true;
 }
 
-bool integer_anagrams(const int *array1, int length1,
-                      const int *array2, int length2){
+bool integer_anagrams(const int *array1, int length1, const int *array2, int length2){
+    if (array1 == NULL || array2 == NULL) return false;
+    if (!(length1 == length2)) return false;
+
+    //FALTA
     return true;
 }
