@@ -56,20 +56,75 @@ void array_map(int *array, int length, int f(int)) {
 }
 
 int *copy_array(const int *array, int length) {
-    //what?
-    return NULL;
+    if (!array) return false;
+
+    int * newArray = malloc(length * sizeof(int));
+
+    if (!newArray) return false;
+
+    for (int i = 0; i < length; i++){
+        newArray[i] = array[i];
+    }
+
+    return newArray;
 }
 
 int **copy_array_of_arrays(const int **array_of_arrays, const int *array_lenghts, int array_amount){
-    return NULL;
+    if (!array_of_arrays || !array_lenghts) return false;
+
+    int ** newArray = malloc(array_amount * sizeof(int *));
+
+    if (!newArray) return false;
+
+    for (int i = 0; i < array_amount; i++){
+        if (!array_of_arrays[i]){ 
+            newArray[i] = NULL;
+        }
+        
+        else{
+            newArray[i] = copy_array(array_of_arrays[i], array_lenghts[i]);
+
+            if (!newArray[i]){
+                for (int j = 0; j <= i; j++){
+                    free(newArray[j]);
+                }
+
+                free(newArray);
+            }
+        }
+    }
+
+
+    return newArray;
 }
 
 void free_array_of_arrays(int **array_of_arrays, int *array_lenghts, int array_amount){
-    return;
+    if (!array_of_arrays || !array_lenghts) return;
+
+    for (int i = 0; i < array_amount; i++){
+        free(array_of_arrays[i]);
+    }
+
+    free(array_of_arrays);
+    free(array_lenghts);
 }
 
 void bubble_sort(int *array, int length){
-    return;
+    if (!array) return;
+
+    int i, j;
+    bool swapped;
+    for (i = 0; i < length - 1; i++) {
+        swapped = false;
+        for (j = 0; j < length - i - 1; j++) {
+            if (array[j] > array[j + 1]) {
+                swap(&array[j], &array[j + 1]);
+                swapped = true;
+            }
+        }
+
+        if (!swapped) break;
+    }
 }
 
 bool array_equal(const int *array1, int length1, const int *array2, int length2){
@@ -94,6 +149,20 @@ bool integer_anagrams(const int *array1, int length1, const int *array2, int len
     if (array1 == NULL || array2 == NULL) return false;
     if (!(length1 == length2)) return false;
 
-    //FALTA
-    return true;
+    int count1[10];
+    int count2[10];
+
+    for (int i = 0; i < 10; i++){
+        count1[i] = 0;
+        count2[i] = 0;
+    }
+
+    for (int j = 0; j < length1; j++){
+        count1[array1[j]]++;
+        count2[array2[j]]++;
+    }
+
+    if (array_equal(count1, 10, count2, 10)) return true;
+
+    return false;
 }
