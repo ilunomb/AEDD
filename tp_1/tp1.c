@@ -3,15 +3,13 @@
 #include <math.h>
 
 bool is_prime(int x){
+    if (x <= 1) return false;
+
     if (x == 2){
         return true;
     }
     
-    if (x % 2 == 0){
-        return false;
-    }
-
-    if (x % 3 == 0){
+    if (x % 2 == 0 || x % 3 == 0){
         return false;
     }
 
@@ -30,12 +28,16 @@ int storage_capacity(float d, float v){
 }
 
 void swap(int *x, int *y) {
+    if (!x || !y) return;
+
     int aux = *y;
     *y = *x;
     *x = aux;
 }
 
 int array_max(const int *array, int length) {
+    if (!array) return false;
+
     int max = array[0];
 
     for (int i = 1; i < length; i++){
@@ -73,7 +75,7 @@ int **copy_array_of_arrays(const int **array_of_arrays, const int *array_lenghts
     if (!array_of_arrays || !array_lenghts) return false;
 
     int ** newArray = malloc(array_amount * sizeof(int *));
-
+    
     if (!newArray) return false;
 
     for (int i = 0; i < array_amount; i++){
@@ -129,13 +131,12 @@ void bubble_sort(int *array, int length){
 }
 
 bool array_equal(const int *array1, int length1, const int *array2, int length2){
-    if (array1 == NULL){
-        if (array2 == NULL) return true;
-
+    if (!array1){
+        if (!array2) return true;
         return false;
     }
 
-    if (array2 == NULL) return false;
+    if (!array2) return false;
 
     if (!(length1 == length2)) return false;
 
@@ -151,6 +152,7 @@ bool integer_anagrams(const int *array1, int length1, const int *array2, int len
 
     if (array1 == NULL || array2 == NULL) return false;
     if (!(length1 == length2)) return false;
+    if (array_equal(array1, length1, array2, length2)) return true;
 
     int * count1 = copy_array(array1, length1);
     int * count2 = copy_array(array2, length2);
