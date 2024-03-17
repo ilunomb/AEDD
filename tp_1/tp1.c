@@ -148,31 +148,26 @@ bool array_equal(const int *array1, int length1, const int *array2, int length2)
 }
 
 bool integer_anagrams(const int *array1, int length1, const int *array2, int length2){
-    //wtf no anda bien
-
     if (array1 == NULL || array2 == NULL) return false;
-    if (!(length1 == length2)) return false;
+
+    if (length1 != length2) return false;
+
     if (array_equal(array1, length1, array2, length2)) return true;
 
-    int * count1 = copy_array(array1, length1);
-    int * count2 = copy_array(array2, length2);
+    int item, count1, count2;
 
-    bubble_sort(count1, length1);
-    bubble_sort(count2, length2);
+    for (int i = 0; i < length1; i++) {
+        item = array1[i];
+        count1 = 0;
+        count2 = 0;
 
-    // for (int i = 0; i < 10; i++){
-    //     count1[i] = 0;
-    //     count2[i] = 0;
-    // }
+        for (int j = 0; j < length1; j++) {
+            if (array1[j] == item) count1++;
+            if (array2[j] == item) count2++;
+        }
 
-    // for (int j = 0; j < length1; j++){
-    //     count1[array1[j]]++;
-    //     count2[array2[j]]++;
-    // }
-    bool result = array_equal(count1, length1, count2, length2);
-    
-    free(count1);
-    free(count2);
+        if (count1 != count2) return false;
+    }
 
-    return result;
+    return true;
 }
