@@ -110,21 +110,34 @@ void *list_pop_head(list_t *list){
     free(list->head);
 
     list->head = new_head;
+    list->size--;
 
     return value;    
 }
 
 void *list_pop_tail(list_t *list){
-    return NULL;
+    if(!list || list_is_empty(list)) return NULL;
+
+    void* value = list->tail->value;
+    node_t* new_tail = list->tail->prev;
+
+    if(!new_tail) list->head = NULL; else new_tail->next = NULL;
+
+    free(list->tail);
+
+    list->tail = new_tail;
+    list->size--;
+
+    return value;    
 }
 
 void list_destroy(list_t *list, void destroy_value(void *)){
     if(!list) return;
 
-    // while(!list_is_empty(list)){
-    //     void* value = list_pop_tail(list);
-    //     if(destroy_value) destroy_value(value);
-    // }
+    while(!list_is_empty(list)){
+        void* value = list_pop_tail(list);
+        if(destroy_value) destroy_value(value);
+    }
 
     free(list);
 }
