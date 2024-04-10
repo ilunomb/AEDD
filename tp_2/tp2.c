@@ -213,7 +213,7 @@ void list_iter_destroy(list_iter_t *iter){
 }
 
 bool list_iter_insert_after(list_iter_t *iter, void *value){
-    if(!iter) return NULL;
+    if(!iter) return false;
 
     if(list_is_empty(iter->list)){
         list_insert_head(iter->list, value);
@@ -239,7 +239,7 @@ bool list_iter_insert_after(list_iter_t *iter, void *value){
 }
 
 bool list_iter_insert_before(list_iter_t *iter, void *value){
-    if(!iter) return NULL;
+    if(!iter) return false;
 
     if(list_is_empty(iter->list)){
         list_insert_head(iter->list, value);
@@ -288,6 +288,7 @@ void *list_iter_delete(list_iter_t *iter){
     free(iter->curr);
 
     iter->curr = next_node;
+    iter->list->size--;
 
     return value;
 }
