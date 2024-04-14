@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-struct node;
-typedef struct node node_t;
 
 struct node {
     void* value;
@@ -47,45 +45,16 @@ bool list_is_empty(const list_t *list){
     return list->size == 0;
 }
 
+
+
 bool list_insert_head(list_t *list, void *value){
-    if(!list) return false;
-
-    node_t* node = malloc(sizeof(node_t));
-    
-    if(!node) return false;
-
-    node->next = list->head;
-    node->prev = NULL;
-    node->value = value;
-
-    if(list->head) list->head->prev = node;
-    if(!list->tail) list->tail = node;
-
-    list->head = node;
-    list->size++;
-
-    return true;
+    return list_insert(list, value, NULL, list->head);
 }
 
 bool list_insert_tail(list_t *list, void *value){
-    if(!list) return false;
-
-    node_t* node = malloc(sizeof(node_t));
-    
-    if(!node) return false;
-
-    node->next = NULL;
-    node->prev = list->tail;
-    node->value = value;
-
-    if(list->tail) list->tail->next = node;
-    if(!list->head) list->head = node;
-
-    list->tail = node;
-    list->size++;
-
-    return true;
+    return list_insert(list, value, list->tail, NULL);
 }
+
 
 void *list_peek_head(const list_t *list){
     if(!list || list_is_empty(list)) return NULL;
@@ -99,36 +68,12 @@ void *list_peek_tail(const list_t *list){
     return list->tail->value;
 }
 
-void *list_pop_head(list_t *list){
-    if(!list || list_is_empty(list)) return NULL;
-
-    void* value = list->head->value;
-    node_t* new_head = list->head->next;
-
-    if(!new_head) list->tail = NULL; else new_head->prev = NULL;
-
-    free(list->head);
-
-    list->head = new_head;
-    list->size--;
-
-    return value;    
+void *list_pop_head(list_t *list) {
+    return list_pop_node(list, true);
 }
 
-void *list_pop_tail(list_t *list){
-    if(!list || list_is_empty(list)) return NULL;
-
-    void* value = list->tail->value;
-    node_t* new_tail = list->tail->prev;
-
-    if(!new_tail) list->head = NULL; else new_tail->next = NULL;
-
-    free(list->tail);
-
-    list->tail = new_tail;
-    list->size--;
-
-    return value;    
+void *list_pop_tail(list_t *list) {
+    return list_pop_node(list, false);
 }
 
 void list_destroy(list_t *list, void destroy_value(void *)){
@@ -143,49 +88,19 @@ void list_destroy(list_t *list, void destroy_value(void *)){
 }
 
 list_iter_t *list_iter_create_head(list_t *list){
-    if(!list) return NULL; //necesario?????
-
-    list_iter_t* iter = malloc(sizeof(list_iter_t));
-
-    if(!iter) return NULL;
-
-    iter->list = list;
-    iter->curr = list->head;
-
-    return iter;
+    return list_iter_create(list, true);
 }
 
 list_iter_t *list_iter_create_tail(list_t *list){
-    if(!list) return NULL; //necesario?????
-
-    list_iter_t* iter = malloc(sizeof(list_iter_t));
-
-    if(!iter) return NULL;
-
-    iter->list = list;
-    iter->curr = list->tail;
-
-    return iter;
+    return list_iter_create(list, false);
 }
 
 bool list_iter_forward(list_iter_t *iter){
-    if(!iter) return false;
-
-    if(iter->curr == iter->list->tail) return false;
-
-    iter->curr = iter->curr->next;
-
-    return true;
+    return list_iter_move(iter, true);
 }
 
 bool list_iter_backward(list_iter_t *iter){
-    if(!iter) return false;
-
-    if(iter->curr == iter->list->head) return false;
-
-    iter->curr = iter->curr->prev;
-
-    return true;
+    return list_iter_move(iter, false);
 }
 
 void *list_iter_peek_current(const list_iter_t *iter){
@@ -194,16 +109,12 @@ void *list_iter_peek_current(const list_iter_t *iter){
     return iter->curr->value;
 }
 
-bool list_iter_at_last(const list_iter_t *iter){
-    if(!iter) return false;
-
-    return iter->curr == iter->list->tail;
+bool list_iter_at_first(const list_iter_t *iter){
+    return list_iter_at(iter, true);
 }
 
-bool list_iter_at_first(const list_iter_t *iter){
-    if(!iter) return false;
-
-    return iter->curr == iter->list->head;
+bool list_iter_at_last(const list_iter_t *iter){
+    return list_iter_at(iter, false);
 }
 
 void list_iter_destroy(list_iter_t *iter){
@@ -213,61 +124,15 @@ void list_iter_destroy(list_iter_t *iter){
 }
 
 bool list_iter_insert_after(list_iter_t *iter, void *value){
-    if(!iter) return false;
-
-    if(list_is_empty(iter->list)){
-        list_insert_head(iter->list, value);
-        iter->curr = iter->list->head;
-        return true;
-    }
-
-    if(list_iter_at_last(iter)) return list_insert_tail(iter->list, value);
-
-    node_t* new_node = malloc(sizeof(node_t));
-
-    if(!new_node) return false;
-
-    new_node->next = iter->curr->next;
-    new_node->prev = iter->curr;
-    new_node->value = value;
-
-    iter->curr->next->prev = new_node;
-    iter->curr->next = new_node;
-    iter->list->size++;
-
-    return true;
+    return list_iter_insert(iter, value, true);
 }
 
 bool list_iter_insert_before(list_iter_t *iter, void *value){
-    if(!iter) return false;
-
-    if(list_is_empty(iter->list)){
-        list_insert_head(iter->list, value);
-        iter->curr = iter->list->head;
-        return true;
-    }
-
-    if(list_iter_at_first(iter)) return list_insert_head(iter->list, value);
-
-    node_t* new_node = malloc(sizeof(node_t));
-
-    if(!new_node) return false;
-
-    new_node->next = iter->curr;
-    new_node->prev = iter->curr->prev;
-    new_node->value = value;
-
-    iter->curr->prev->next = new_node;
-    iter->curr->prev = new_node;
-    iter->list->size++;
-
-    return true;
+    return list_iter_insert(iter, value, false);
 }
 
 void *list_iter_delete(list_iter_t *iter){
     if(!iter || list_is_empty(iter->list)) return NULL;
-
-    // if(list_length(iter->list) == 1) return list_pop_head(iter->list);
 
     if(list_iter_at_last(iter)){
         iter->curr = iter->curr->prev;
@@ -291,4 +156,111 @@ void *list_iter_delete(list_iter_t *iter){
     iter->list->size--;
 
     return value;
+}
+
+
+//AUXILIAR FUNCTIONS
+
+bool list_insert(list_t *list, void *value, node_t *prev_node, node_t *next_node){
+    if(!list) return false;
+
+    node_t* node = malloc(sizeof(node_t));
+    
+    if(!node) return false;
+
+    node->next = next_node;
+    node->prev = prev_node;
+    node->value = value;
+
+    if(prev_node) prev_node->next = node;
+    if(next_node) next_node->prev = node;
+
+    if(!prev_node) list->head = node;
+    if(!next_node) list->tail = node;
+
+    list->size++;
+
+    return true;
+}
+
+void *list_pop_node(list_t *list, bool pop_head) {
+    if (!list || list_is_empty(list)) return NULL;
+
+    node_t *node = pop_head ? list->head : list->tail;
+    void *value = node->value;
+    node_t *adjacent_node = pop_head ? node->next : node->prev;
+
+    if (pop_head) {
+        list->head = adjacent_node;
+        if (!adjacent_node){
+            list->tail = NULL;
+        }
+        else{
+            adjacent_node->prev = NULL;
+        }
+
+    } else {
+        list->tail = adjacent_node;
+        if (!adjacent_node){
+            list->head = NULL;
+        }
+        else{
+            adjacent_node->next = NULL;
+        }
+    }
+
+    free(node);
+    list->size--;
+
+    return value;
+}
+
+list_iter_t *list_iter_create(list_t *list, bool create_head) {
+    if(!list) return NULL;
+
+    list_iter_t* iter = malloc(sizeof(list_iter_t));
+
+    if(!iter) return NULL;
+
+    iter->list = list;
+    iter->curr = create_head ? list->head : list->tail;
+
+    return iter;
+}
+
+bool list_iter_move(list_iter_t *iter, bool move_forward) {
+    if(!iter) return false;
+
+    node_t *boundary_node = move_forward ? iter->list->tail : iter->list->head;
+    if(iter->curr == boundary_node) return false;
+
+    iter->curr = move_forward ? iter->curr->next : iter->curr->prev;
+
+    return true;
+}
+
+bool list_iter_at(const list_iter_t *iter, bool head) {
+    if(!iter) return false;
+
+    node_t *boundary_node = head ? iter->list->head : iter->list->tail;
+
+    return iter->curr == boundary_node;
+}
+
+bool list_iter_insert(list_iter_t *iter, void *value, bool after){
+    if(!iter) return false;
+
+    if(list_is_empty(iter->list)){
+        list_insert(iter->list, value, NULL, NULL);
+        iter->curr = iter->list->head;
+        return true;
+    }
+
+    if(after){
+        if(list_iter_at_last(iter)) return list_insert(iter->list, value, iter->curr, NULL);
+        return list_insert(iter->list, value, iter->curr, iter->curr->next);
+    } else {
+        if(list_iter_at_first(iter)) return list_insert(iter->list, value, NULL, iter->curr);
+        return list_insert(iter->list, value, iter->curr->prev, iter->curr);
+    }
 }

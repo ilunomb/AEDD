@@ -8,6 +8,8 @@ struct list;
 typedef struct list list_t;
 struct iterator;
 typedef struct list_iter list_iter_t;
+struct node;
+typedef struct node node_t;
 
 /*
  * Crea una nueva lista.
@@ -169,5 +171,35 @@ bool list_iter_insert_before(list_iter_t *iter, void *value);
  * Devuelve el valor contenido por el eliminado, si la lista está vacia devuelve NULL.
  */
 void *list_iter_delete(list_iter_t *iter);
+
+/*
+ * inserta un nodo en la lista
+ */
+bool list_insert(list_t *list, void *value, node_t *prev_node, node_t *next_node);
+
+/*
+ * pop a node from the list
+ */
+void *list_pop_node(list_t *list, bool pop_head);
+
+/*
+ * Crea un iterador
+ */
+list_iter_t *list_iter_create(list_t *list, bool create_head);
+
+/*
+ * Mueve el iterador
+ */
+bool list_iter_move(list_iter_t *iter, bool move_forward);
+
+/*
+ * Devuelve si el iterador está en la posición deseada
+ */
+bool list_iter_at(const list_iter_t *iter, bool head);
+
+/*
+ * Inserta un nodo en la lista por medio del iterador
+ */
+bool list_iter_insert(list_iter_t *iter, void *value, bool after);
 
 #endif
