@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+struct node;
+
+typedef struct node node_t;
 
 struct node {
     void* value;
@@ -31,6 +34,38 @@ list_t *list_new(){
 
     return list;
 }
+
+//Agrego las declaraciones de todas mis funciones auxiliares, ya que el campus no me deja entregar mas de un archivo, y no permite el zip con el .h y el .c,
+
+/*
+ * inserta un nodo en la lista
+ */
+bool list_insert(list_t *list, void *value, node_t *prev_node, node_t *next_node);
+
+/*
+ * pop a node from the list
+ */
+void *list_pop_node(list_t *list, bool pop_head);
+
+/*
+ * Crea un iterador
+ */
+list_iter_t *list_iter_create(list_t *list, bool create_head);
+
+/*
+ * Mueve el iterador
+ */
+bool list_iter_move(list_iter_t *iter, bool move_forward);
+
+/*
+ * Devuelve si el iterador está en la posición deseada
+ */
+bool list_iter_at(const list_iter_t *iter, bool head);
+
+/*
+ * Inserta un nodo en la lista por medio del iterador
+ */
+bool list_iter_insert(list_iter_t *iter, void *value, bool after);
 
 
 size_t list_length(const list_t *list){
