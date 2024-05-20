@@ -286,9 +286,9 @@ bool list_iter_insert(list_iter_t *iter, void *value, bool after){
     if(!iter) return false;
 
     if(list_is_empty(iter->list)){
-        list_insert(iter->list, value, NULL, NULL);
-        iter->curr = iter->list->head;
-        return true;
+        bool result = list_insert(iter->list, value, NULL, NULL);
+        if (result) iter->curr = iter->list->head;
+        return result;
     }
 
     if(after){
