@@ -66,7 +66,7 @@ dictionary_t *dictionary_create(destroy_f destroy) {
     }
 
     dict->len = 0;
-    dict->cap = 10;
+    dict->cap = 16;
     dict->capacity_factor = (3 * dict->cap) / 4;
     dict->destroy = destroy;
 
@@ -91,6 +91,8 @@ bool rehash(dictionary_t *dictionary) {
     if (!dictionary->entry) {
         dictionary->entry = old_entry;
         dictionary->cap = old_cap;
+        dictionary->len = old_len;
+        dictionary->capacity_factor = (3 * dictionary->cap) / 4;
         return false;
     }
 
@@ -103,6 +105,7 @@ bool rehash(dictionary_t *dictionary) {
                 dictionary->entry = old_entry;
                 dictionary->cap = old_cap;
                 dictionary->len = old_len;
+                dictionary->capacity_factor = (3 * dictionary->cap) / 4;
                 return false;
             }
             free(old_entry[i]->key);  // Free the duplicated key
