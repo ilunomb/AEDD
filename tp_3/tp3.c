@@ -11,33 +11,31 @@ typedef struct entry_t {
 
 struct dictionary {
     destroy_f destroy;
-    int len;
-    int cap;
-    double capacity_factor;
+    size_t len;
+    size_t cap;
+    size_t capacity_factor;
     entry_t **entry;
 };
 
-int hash_function(const char *key, int cap);
+size_t hash_function(const char *key, size_t cap);
 
 entry_t *entry_create(const char *key, void *value);
 
 bool rehash(dictionary_t *dictionary);
 
 // Custom strdup implementation
-char *custom_strdup(const char *s) {
-    size_t len = strlen(s) + 1;
-    char *dup = malloc(len);
-    if (!dup) {
+char* custom_strdup(const char* s) {
+    char* copy = malloc(strlen(s) + 1);
+    if (!copy) {
         return NULL;
     }
-    memcpy(dup, s, len);
-    return dup;
+    return strcpy(copy, s);
 }
 
-int hash_function(const char *key, int cap) {
-    int hash = 0;
-    for (int i = 0; key[i] != '\0'; i++) {
-        hash += key[i];
+size_t hash_function(const char *key, size_t cap) {
+    size_t hash = 0;
+    for (size_t i = 0; key[i] != '\0'; i++) {
+        hash = hash * 31 + key[i];
     }
     return hash % cap;
 }
@@ -69,7 +67,7 @@ dictionary_t *dictionary_create(destroy_f destroy) {
 
     dict->len = 0;
     dict->cap = 10;
-    dict->capacity_factor = 0.75 * dict->cap;
+    dict->capacity_factor = (3 * dict->cap) / 4;
     dict->destroy = destroy;
 
     dict->entry = calloc(dict->cap, sizeof(entry_t *));  // Allocate memory for the entry array
@@ -83,10 +81,11 @@ dictionary_t *dictionary_create(destroy_f destroy) {
 
 bool rehash(dictionary_t *dictionary) {
     entry_t **old_entry = dictionary->entry;
-    int old_cap = dictionary->cap;
+    size_t old_cap = dictionary->cap;
+    size_t old_len = dictionary->len;
 
     dictionary->cap *= 2;
-    dictionary->capacity_factor = 0.75 * dictionary->cap;
+    dictionary->capacity_factor = (3 * dictionary->cap) / 4;
 
     dictionary->entry = calloc(dictionary->cap, sizeof(entry_t *));
     if (!dictionary->entry) {
@@ -95,13 +94,15 @@ bool rehash(dictionary_t *dictionary) {
         return false;
     }
 
-    for (int i = 0; i < old_cap; i++) {
+    dictionary->len = 0; // Reset len and recalculate it during reinsertion
+    for (size_t i = 0; i < old_cap; i++) {
         if (old_entry[i] && !old_entry[i]->deleted) {
             bool result = dictionary_put(dictionary, old_entry[i]->key, old_entry[i]->value);
             if (!result) {
                 free(dictionary->entry);
                 dictionary->entry = old_entry;
                 dictionary->cap = old_cap;
+                dictionary->len = old_len;
                 return false;
             }
             free(old_entry[i]->key);  // Free the duplicated key
@@ -121,7 +122,9 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
         }
     }
 
-    int index = hash_function(key, dictionary->cap);
+    size_t index = hash_function(key, dictionary->cap);
+
+    size_t start_index = index;
 
     entry_t *new_entry = entry_create(key, value);
 
@@ -132,7 +135,6 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
     // Avoid collision using linear probing
     while (dictionary->entry[index]) {
         if (dictionary->entry[index]->deleted) {
-            free(dictionary->entry[index]->key);
             free(dictionary->entry[index]);
             dictionary->entry[index] = new_entry;
             dictionary->len++;
@@ -148,7 +150,17 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
             dictionary->entry[index] = new_entry;
             return true;
         }
+
         index = (index + 1) % dictionary->cap;
+        
+        if (index == start_index) {
+            if (dictionary->destroy && new_entry->value) {
+                dictionary->destroy(new_entry->value);
+            }
+            free(new_entry->key);
+            free(new_entry);
+            return false;
+        }
     }
 
     dictionary->entry[index] = new_entry;
@@ -158,66 +170,68 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
 }
 
 void *dictionary_get(dictionary_t *dictionary, const char *key, bool *err) {
-  int index = hash_function(key, dictionary->cap);
-  int start_index = index;
+    size_t index = hash_function(key, dictionary->cap);
+    size_t start_index = index;
 
-  while (dictionary->entry[index]) {
-    if (!dictionary->entry[index]->deleted && strcmp(dictionary->entry[index]->key, key) == 0) {
-      *err = false;
-      return dictionary->entry[index]->value;
+    while (dictionary->entry[index]) {
+        if (!dictionary->entry[index]->deleted && strcmp(dictionary->entry[index]->key, key) == 0) {
+            *err = false;
+            return dictionary->entry[index]->value;
+        }
+        index = (index + 1) % dictionary->cap;
+        if (index == start_index) {
+            *err = true;
+            return NULL;
+        }
     }
-    index = (index + 1) % dictionary->cap;
-    if (index == start_index) {
-      *err = true;
-      return NULL;
-    }
-  }
 
-  *err = true;
-  return NULL;
+    *err = true;
+    return NULL;
 }
 
 bool dictionary_delete(dictionary_t *dictionary, const char *key) {
-  int index = hash_function(key, dictionary->cap);
-  int start_index = index;
+    size_t index = hash_function(key, dictionary->cap);
+    size_t start_index = index;
 
-  while (dictionary->entry[index]) {
-    if (strcmp(dictionary->entry[index]->key, key) == 0 && !dictionary->entry[index]->deleted) {
-      if (dictionary->destroy && dictionary->entry[index]->value) {
-        dictionary->destroy(dictionary->entry[index]->value);
-      }
-      free(dictionary->entry[index]->key);
-      free(dictionary->entry[index]); // Free the entry
-      dictionary->entry[index] = NULL; // Set the entry pointer to NULL
-      dictionary->len--;
-      return true;
+    while (dictionary->entry[index]) {
+        if (!dictionary->entry[index]->deleted && strcmp(dictionary->entry[index]->key, key) == 0) {
+            if (dictionary->destroy && dictionary->entry[index]->value) {
+                dictionary->destroy(dictionary->entry[index]->value);
+            }
+            dictionary->entry[index]->deleted = true;
+            free(dictionary->entry[index]->key);
+            dictionary->len--;
+            return true;
+        }
+        index = (index + 1) % dictionary->cap;
+        if (index == start_index) {
+            return false;
+        }
     }
-    index = (index + 1) % dictionary->cap;
-    if (index == start_index) {
-      return false;
-    }
-  }
 
-  return false;
+    return false;
 }
 
 void *dictionary_pop(dictionary_t *dictionary, const char *key, bool *err) {
-    int index = hash_function(key, dictionary->cap);
-    int start_index = index;
+    size_t index = hash_function(key, dictionary->cap);
+    size_t start_index = index;
 
     while (dictionary->entry[index]) {
-        if (strcmp(dictionary->entry[index]->key, key) == 0 && !dictionary->entry[index]->deleted) {
+        if (!dictionary->entry[index]->deleted && strcmp(dictionary->entry[index]->key, key) == 0) {
             void *value = dictionary->entry[index]->value;
-            free(dictionary->entry[index]->key); // Free the key
-            free(dictionary->entry[index]); // Free the entry
-            dictionary->entry[index] = NULL; // Set the entry pointer to NULL
+            // if (dictionary->destroy && dictionary->entry[index]->value) {
+            //     dictionary->destroy(dictionary->entry[index]->value);
+            // }
+            free(dictionary->entry[index]->key);
+            dictionary->entry[index]->deleted = true;
             dictionary->len--;
             *err = false;
             return value;
         }
         index = (index + 1) % dictionary->cap;
         if (index == start_index) {
-            break;
+            *err = true;
+            return NULL;
         }
     }
 
@@ -226,8 +240,8 @@ void *dictionary_pop(dictionary_t *dictionary, const char *key, bool *err) {
 }
 
 bool dictionary_contains(dictionary_t *dictionary, const char *key) {
-    int index = hash_function(key, dictionary->cap);
-    int start_index = index;
+    size_t index = hash_function(key, dictionary->cap);
+    size_t start_index = index;
 
     while (dictionary->entry[index]) {
         if (strcmp(dictionary->entry[index]->key, key) == 0 && !dictionary->entry[index]->deleted) {
@@ -247,12 +261,14 @@ size_t dictionary_size(dictionary_t *dictionary) {
 }
 
 void dictionary_destroy(dictionary_t *dictionary) {
-    for (int i = 0; i < dictionary->cap; i++) {
-        if (dictionary->entry[i] && !dictionary->entry[i]->deleted) {
-            if (dictionary->destroy && dictionary->entry[i]->value) {
-                dictionary->destroy(dictionary->entry[i]->value);
+    for (size_t i = 0; i < dictionary->cap; i++) {
+        if (dictionary->entry[i]) {
+            if (!dictionary->entry[i]->deleted) {
+                if (dictionary->destroy && dictionary->entry[i]->value) {
+                    dictionary->destroy(dictionary->entry[i]->value);
+                }
+                free(dictionary->entry[i]->key);
             }
-            free(dictionary->entry[i]->key);
             free(dictionary->entry[i]);
         }
     }
