@@ -112,6 +112,15 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
 
   //avoid collision using linear probing
   while (dictionary->entry[index]) {
+    if (dictionary->entry[index]->key == key) {
+      if (dictionary->destroy && dictionary->entry[index]->value) {
+        dictionary->destroy(dictionary->entry[index]->value);
+      }
+      free(dictionary->entry[index]);
+      dictionary->entry[index] = new_entry;
+      return true;
+    }
+
     index = (index + 1) % dictionary->cap;
   }
 
@@ -150,12 +159,22 @@ void *dictionary_get(dictionary_t *dictionary, const char *key, bool *err) {
 bool dictionary_delete(dictionary_t *dictionary, const char *key) {
   int index = hash_function(key, dictionary->cap);
 
-  while((dictionary->entry[index] && dictionary->entry[index]->key != key) || dictionary->entry[index]->deleted) {
+  int i = 0;
+
+  while(dictionary->entry[index] && (dictionary->entry[index]->key != key || dictionary->entry[index]->deleted)) {
     index = (index + 1) % dictionary->cap;
+    i++;
+    if (i >= dictionary->cap) {
+      return false;
+    }
   }
 
-  if (dictionary->entry[index]->key == key) {
-    dictionary->entry[index]->deleted = true;
+  if (dictionary->entry[index] && dictionary->entry[index]->key == key) {
+    if (dictionary->destroy && dictionary->entry[index]->value) {
+      dictionary->destroy(dictionary->entry[index]->value);
+    }
+    free(dictionary->entry[index]);
+    dictionary->entry[index] = NULL;
     dictionary->len--;
     return true;
   }
@@ -163,14 +182,22 @@ bool dictionary_delete(dictionary_t *dictionary, const char *key) {
   return false;
 };
 
+
 void *dictionary_pop(dictionary_t *dictionary, const char *key, bool *err) {
   int index = hash_function(key, dictionary->cap);
 
-  while((dictionary->entry[index] && dictionary->entry[index]->key != key) || dictionary->entry[index]->deleted) {
+  int i = 0;
+
+  while(dictionary->entry[index] && (dictionary->entry[index]->key != key || dictionary->entry[index]->deleted)) {
     index = (index + 1) % dictionary->cap;
+    i++;
+    if (i >= dictionary->cap) {
+      *err = true;
+      return NULL;
+    }
   }
 
-  if (dictionary->entry[index]->key == key) {
+  if (dictionary->entry[index] && dictionary->entry[index]->key == key) {
     void *value = dictionary->entry[index]->value;
     dictionary->entry[index]->deleted = true;
     dictionary->len--;
