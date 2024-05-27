@@ -17,13 +17,6 @@ struct dictionary {
     entry_t **entry;
 };
 
-size_t hash_function(const char *key, size_t cap);
-
-entry_t *entry_create(const char *key, void *value);
-
-bool rehash(dictionary_t *dictionary);
-
-// Custom strdup implementation
 char* custom_strdup(const char* s) {
     char* copy = malloc(strlen(s) + 1);
     if (!copy) {
@@ -33,10 +26,12 @@ char* custom_strdup(const char* s) {
 }
 
 size_t hash_function(const char *key, size_t cap) {
-    size_t hash = 0;
-    for (size_t i = 0; key[i] != '\0'; i++) {
-        hash = hash * 31 + key[i];
-    }
+    size_t hash = 5381;
+    int c;
+
+    while ((c = *key++))
+        hash = ((hash << 5) + hash) + c;
+
     return hash % cap;
 }
 
@@ -46,7 +41,7 @@ entry_t *entry_create(const char *key, void *value) {
         return NULL;
     }
 
-    entry->key = custom_strdup(key);  // Duplicate the key to ensure it is stored safely
+    entry->key = custom_strdup(key);
     if (!entry->key) {
         free(entry);
         return NULL;
@@ -70,7 +65,7 @@ dictionary_t *dictionary_create(destroy_f destroy) {
     dict->capacity_factor = (3 * dict->cap) / 4;
     dict->destroy = destroy;
 
-    dict->entry = calloc(dict->cap, sizeof(entry_t *));  // Allocate memory for the entry array
+    dict->entry = calloc(dict->cap, sizeof(entry_t *));
     if (!dict->entry) {
         free(dict);
         return NULL;
@@ -96,7 +91,7 @@ bool rehash(dictionary_t *dictionary) {
         return false;
     }
 
-    dictionary->len = 0; // Reset len and recalculate it during reinsertion
+    dictionary->len = 0;
     for (size_t i = 0; i < old_cap; i++) {
         if (old_entry[i] && !old_entry[i]->deleted) {
             bool result = dictionary_put(dictionary, old_entry[i]->key, old_entry[i]->value);
@@ -108,8 +103,8 @@ bool rehash(dictionary_t *dictionary) {
                 dictionary->capacity_factor = (3 * dictionary->cap) / 4;
                 return false;
             }
-            free(old_entry[i]->key);  // Free the duplicated key
-            free(old_entry[i]);  // Free the entry
+            free(old_entry[i]->key);
+            free(old_entry[i]);
         }
     }
 
@@ -135,7 +130,6 @@ bool dictionary_put(dictionary_t *dictionary, const char *key, void *value) {
         return false;
     }
 
-    // Avoid collision using linear probing
     while (dictionary->entry[index]) {
         if (dictionary->entry[index]->deleted) {
             free(dictionary->entry[index]);
@@ -222,9 +216,6 @@ void *dictionary_pop(dictionary_t *dictionary, const char *key, bool *err) {
     while (dictionary->entry[index]) {
         if (!dictionary->entry[index]->deleted && strcmp(dictionary->entry[index]->key, key) == 0) {
             void *value = dictionary->entry[index]->value;
-            // if (dictionary->destroy && dictionary->entry[index]->value) {
-            //     dictionary->destroy(dictionary->entry[index]->value);
-            // }
             free(dictionary->entry[index]->key);
             dictionary->entry[index]->deleted = true;
             dictionary->len--;
