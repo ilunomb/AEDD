@@ -3,6 +3,8 @@ import time
 import numpy as np
 from typing import Optional, Any, List, Dict, Set, Tuple
 
+from tqdm import tqdm
+
 
 class Graph:
     """
@@ -300,33 +302,92 @@ class Graph:
     #                     count += 1
     #     return count
 
-    def transpose(self) -> 'Graph':
+    # def transpose(self) -> 'Graph':
+    #     """
+    #     Returns the transpose of the graph
+    #     :return: A new Graph object that is the transpose of the current graph
+    #     """
+    #     transposed = Graph()
+    #     for vertex in self._graph:
+    #         transposed.add_vertex(vertex, self._graph[vertex]['data'])
+    #     for vertex in self._graph:
+    #         for neighbor in self._graph[vertex]['neighbors']:
+    #             transposed.add_edge(neighbor, vertex, self._graph[vertex]['neighbors'][neighbor])
+    #     return transposed
+
+    def make_copy_graph_undirected(self):
         """
-        Returns the transpose of the graph
-        :return: A new Graph object that is the transpose of the current graph
+        Makes a copy of the graph as an undirected graph
         """
-        transposed = Graph()
+        undirected_graph = Graph()
         for vertex in self._graph:
-            transposed.add_vertex(vertex, self._graph[vertex]['data'])
+            undirected_graph.add_vertex(vertex, self._graph[vertex]['data'])
         for vertex in self._graph:
             for neighbor in self._graph[vertex]['neighbors']:
-                transposed.add_edge(neighbor, vertex, self._graph[vertex]['neighbors'][neighbor])
-        return transposed
-
-    def count_and_list_cycle_triangles(self) -> Tuple[int, List[Tuple[str, str, str]]]:
+                undirected_graph.add_edge(vertex, neighbor)
+                undirected_graph.add_edge(neighbor, vertex)
+        return undirected_graph
+    
+    def count_triangles(self) -> int:
         """
-        Counts and optionally lists the cycle triangles in the graph.
-        :return: A tuple containing the number of cycle triangles and the list of triangles
+        Counts the number of triangles in the graph
         """
-        GT = self.transpose()
-        c = 0
+        undirected_graph = self.make_copy_graph_undirected()
+        count = 0
+        for vertex in self._graph:
+            neighbors = undirected_graph.get_neighbors(vertex)
+            for i in range(len(neighbors)):
+                for j in range(i + 1, len(neighbors)):
+                    if undirected_graph.edge_exists(neighbors[i], neighbors[j]):
+                        count += 1
+        return count // 3
+    
+    def pagerank(self, alpha=0.85, max_iterations=100, tolerance=1e-6) -> Dict[str, float]:
+        """
+        Computes the PageRank of each vertex in the graph
+        :param alpha: damping factor (default is 0.85)
+        :param max_iterations: maximum number of iterations (default is 100)
+        :param tolerance: tolerance to check convergence (default is 1e-6)
+        :return: dictionary with vertices as keys and PageRank as values
+        """
+        num_vertices = len(self._graph)
+        if num_vertices == 0:
+            return {}
 
-        for u in self._graph:
-            for v in self.get_neighbors(u):
-                if u < v:
-                    S = set(GT.get_neighbors(u)).intersection(self.get_neighbors(v))
-                    for w in S:
-                        if u < w:
-                            c += 1
+        # Initialize the PageRank values
+        page_rank = {vertex: 1.0 / num_vertices for vertex in self._graph}
+        new_page_rank = page_rank.copy()
+        out_degree = {vertex: len(self.get_neighbors(vertex)) for vertex in self._graph}
 
-        return c
+        converge = False
+        record_tolerance = 0
+
+        for i in range(max_iterations):
+            run_tolerance = 0
+
+            for node in tqdm(self._graph, desc=f'Iteration {i + 1}', total=num_vertices):
+                rank = (1 - alpha) / num_vertices  # effect of teleport
+
+                for in_node in self._graph:
+                    if node in self._graph[in_node]['neighbors']:
+                        rank += alpha * page_rank[in_node] / out_degree[in_node]  # effect of the nodes that point to the node
+
+                new_page_rank[node] = rank
+
+                diff = abs(new_page_rank[node] - page_rank[node])
+                run_tolerance += diff
+
+            page_rank = new_page_rank.copy()
+            record_tolerance = run_tolerance
+
+            # Check whether converge
+            if run_tolerance < tolerance:
+                converge = True
+                print(f"Converged at iteration {i+1}")
+                break
+            print(f"Run tolerance for iteration {i+1} is {run_tolerance}")
+
+        if not converge:
+            print(f"Did not converge, final tolerance: {record_tolerance}")
+
+        return page_rank
