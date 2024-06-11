@@ -1,10 +1,10 @@
+from collections import deque
 import random
 import time
 import numpy as np
-from typing import Optional, Any, List, Dict, Set, Tuple
+from typing import Optional, Any, List, Dict, Set, Tuple, Generator
 
 from tqdm import tqdm
-
 
 class Graph:
     """
@@ -12,12 +12,6 @@ class Graph:
     """
     def __init__(self):
         self._graph = {}
-        self._index = 0
-        self._stack = []
-        self._indices = {}
-        self._low_links = {}
-        self._on_stack = set()
-        self._sccs = []
 
     def add_vertex(self, vertex: str, data: Optional[Any]=None) -> None:
         """
@@ -36,51 +30,19 @@ class Graph:
         :param data: the data associated with the vertex
         """
         if not vertex1 in self._graph or not vertex2 in self._graph:
-            raise ValueError("The vertexes do not exist")
+            raise ValueError("The vertices do not exist")
         self._graph[vertex1]['neighbors'][vertex2] = data
 
-    def get_neighbors(self, vertex) -> List[str]:
+    def get_neighbors(self, vertex: str) -> List[str]:
         """
         Get the list of vertex neighbors
         :param vertex: the vertex to query
-        :return: the list of neighbor vertexes
+        :return: the list of neighbor vertices
         """
         if vertex in self._graph:
             return list(self._graph[vertex]['neighbors'].keys())
         else:
             return []
-
-    def get_vertex_data(self, vertex: str) -> Optional[Any]:
-        """
-        Gets  vertex associated data
-        :param vertex: the vertex name
-        :return: the vertex data
-        """
-        if self.vertex_exists(vertex):
-            return self._graph[vertex]['data']
-        else:
-            return None
-
-    def get_edge_data(self, vertex1: str, vertex2: str) -> Optional[Any]:
-        """
-        Gets the vertexes edge data
-        :param vertex1: the vertex1 name
-        :param vertex2: the vertex2 name
-        :return: vertexes edge data
-        """
-        if self.edge_exists(vertex1, vertex2):
-            return self._graph[vertex1]['neighbors'][vertex2]
-        raise ValueError("The edge does not exist")
-
-    def print_graph(self) -> None:
-        """
-        Prints the graph
-        """
-        for vertex, data in self._graph.items():
-            print("Vertex:", vertex)
-            print("Data:", data['data'])
-            print("Neighbors:", data['neighbors'])
-            print("")
 
     def vertex_exists(self, vertex: str) -> bool:
         """
@@ -98,80 +60,45 @@ class Graph:
         :return: boolean
         """
         return vertex1 in self._graph and vertex2 in self._graph[vertex1]['neighbors']
-    
-    def _strong_connect(self, vertex: str) -> None:
-        """
-        Non-recursive helper function for Tarjan's algorithm to find strongly connected components
-        """
-        stack = [(vertex, 0)]
-        visited = set()
-        
+
+    def connected_components(self, undirected_graph: 'Graph') -> List[List[str]]:
+        connected_components = []
+        is_visited = {vertex: False for vertex in undirected_graph._graph}
+
+        for vertex in undirected_graph._graph:
+            if not is_visited[vertex]:
+                component = self.find_connected_component(vertex, is_visited, undirected_graph)
+                connected_components.append(component)
+
+        return connected_components
+
+    def find_connected_component(self, src: str, is_visited: Dict[str, bool], undirected_graph: 'Graph') -> List[str]:
+        component = []
+        stack = [src]
+
         while stack:
-            v, index = stack[-1]
-            
-            if v not in visited:
-                visited.add(v)
-                self._indices[v] = self._index
-                self._low_links[v] = self._index
-                self._index += 1
-                self._stack.append(v)
-                self._on_stack.add(v)
-            
-            neighbors = self.get_neighbors(v)
-            
-            if index < len(neighbors):
-                neighbor = neighbors[index]
-                stack[-1] = (v, index + 1)
-                
-                if neighbor not in self._indices:
-                    stack.append((neighbor, 0))
-                elif neighbor in self._on_stack:
-                    self._low_links[v] = min(self._low_links[v], self._indices[neighbor])
-            else:
-                if self._low_links[v] == self._indices[v]:
-                    scc = set()
-                    while True:
-                        w = self._stack.pop()
-                        self._on_stack.remove(w)
-                        scc.add(w)
-                        if w == v:
-                            break
-                    self._sccs.append(scc)
-                stack.pop()
-                if stack:
-                    w, _ = stack[-1]
-                    self._low_links[w] = min(self._low_links[w], self._low_links[v])
+            vertex = stack.pop()
+            if not is_visited[vertex]:
+                is_visited[vertex] = True
+                component.append(vertex)
+                for neighbor in undirected_graph.get_neighbors(vertex):
+                    if not is_visited[neighbor]:
+                        stack.append(neighbor)
 
-    def find_strongly_connected_components(self) -> List[Set[str]]:
-        """
-        Finds and returns all strongly connected components
-        """
-        self._index = 0
-        self._stack = []
-        self._indices = {}
-        self._low_links = {}
-        self._on_stack = set()
-        self._sccs = []
+        return component
+    
+    def weakly_connected_components(self) -> List[List[str]]:
+        undirected_graph = self.make_copy_graph_undirected()
 
-        for vertex in self._graph:
-            if vertex not in self._indices:
-                self._strong_connect(vertex)
-
-        return self._sccs
-
-    def largest_strongly_connected_component(self) -> int:
-        """
-        Returns the size of the largest strongly connected component
-        """
-        sccs = self.find_strongly_connected_components()
-        return max(len(scc) for scc in sccs) if sccs else 0
-
-    def number_of_strongly_connected_components(self) -> int:
-        """
-        Returns the number of strongly connected components
-        """
-        sccs = self.find_strongly_connected_components()
-        return len(sccs)
+        return self.connected_components(undirected_graph)
+    
+    def largest_weakly_connected_component(self) -> int:
+        components = self.weakly_connected_components()
+        return max(len(component) for component in components) if components else 0
+    
+    def number_of_weakly_connected_components(self) -> int:
+        components = self.weakly_connected_components()
+        return len(components)
     
     def floyd_warshall_partial(self, sample_size: int) -> float:
         vertices = list(self._graph.keys())
@@ -195,7 +122,69 @@ class Graph:
                         dist[i][j] = dist[i][k] + dist[k][j]
 
         end_time = time.time()
+
         return end_time - start_time
+
+    def bfs(self, start: str) -> Tuple[Dict[str, str], Dict[str, int]]:
+        """
+        Perform BFS and return parent and distance dictionaries
+        :param start: The start vertex
+        :return: parent and distance dictionaries
+        """
+        par = {v: None for v in self._graph}
+        dist = {v: float('inf') for v in self._graph}
+        
+        q = deque([start])
+        dist[start] = 0
+        
+        while q:
+            node = q.popleft()
+            for neighbor in self.get_neighbors(node):
+                if dist[neighbor] == float('inf'):
+                    par[neighbor] = node
+                    dist[neighbor] = dist[node] + 1
+                    q.append(neighbor)
+                    
+        return par, dist
+
+    def print_shortest_path(self, start: str, end: str) -> None:
+        """
+        Print the shortest path from start to end
+        :param start: The start vertex
+        :param end: The end vertex
+        """
+        if not self.vertex_exists(start) or not self.vertex_exists(end):
+            print("One or both vertices not found in the graph")
+            return
+        
+        par, dist = self.bfs(start)
+        
+        if dist[end] == float('inf'):
+            print("Source and Destination are not connected")
+            return
+        
+        path = []
+        current_node = end
+        while current_node is not None:
+            path.append(current_node)
+            current_node = par[current_node]
+        
+        path.reverse()
+        print(" -> ".join(path))
+
+    def estimate_shortest_paths(self, samples: int) -> float:
+        vertices = list(self._graph.keys())
+        sampled_vertices = random.sample(vertices, samples)
+
+        start_time = time.time()
+        for vertex in sampled_vertices:
+            self.bfs(vertex)
+        end_time = time.time()
+
+        return end_time - start_time
+
+
+
 
     # def _initialize_single_source(self, source):
     #     dist = {vertex: float('inf') for vertex in self._graph}
@@ -289,31 +278,38 @@ class Graph:
 
     #     return estimated_time
     
-    # def count_cycle_triangles(self):
-    #     """
-    #     Counts the number of triangles in the graph using the cycle triangle counting method
-    #     """
-    #     count = 0
-    #     for vertex in self._graph:
-    #         neighbors = self.get_neighbors(vertex)
-    #         for i in range(len(neighbors)):
-    #             for j in range(i + 1, len(neighbors)):
-    #                 if self.edge_exists(neighbors[i], neighbors[j]):
-    #                     count += 1
-    #     return count
+    def transpose(self) -> 'Graph':
+        """
+        Returns the transpose of the graph
+        :return: A new Graph object that is the transpose of the current graph
+        """
+        transposed = Graph()
+        for vertex in self._graph:
+            transposed.add_vertex(vertex, self._graph[vertex]['data'])
+        for vertex in self._graph:
+            for neighbor in self._graph[vertex]['neighbors']:
+                transposed.add_edge(neighbor, vertex, self._graph[vertex]['neighbors'][neighbor])
+        return transposed
 
-    # def transpose(self) -> 'Graph':
-    #     """
-    #     Returns the transpose of the graph
-    #     :return: A new Graph object that is the transpose of the current graph
-    #     """
-    #     transposed = Graph()
-    #     for vertex in self._graph:
-    #         transposed.add_vertex(vertex, self._graph[vertex]['data'])
-    #     for vertex in self._graph:
-    #         for neighbor in self._graph[vertex]['neighbors']:
-    #             transposed.add_edge(neighbor, vertex, self._graph[vertex]['neighbors'][neighbor])
-    #     return transposed
+    def count_and_list_cycle_triangles(self) -> Tuple[int, List[Tuple[str, str, str]]]:
+        """
+        Counts and optionally lists the cycle triangles in the graph.
+        :return: A tuple containing the number of cycle triangles and the list of triangles
+        """
+        GT = self.transpose()
+        c = 0
+        triangles = []
+
+        for u in self._graph:
+            for v in self.get_neighbors(u):
+                if u < v:
+                    S = set(GT.get_neighbors(u)).intersection(self.get_neighbors(v))
+                    for w in S:
+                        if u < w:
+                            triangles.append((u, v, w))
+                            c += 1
+                            
+        return c, triangles
 
     def make_copy_graph_undirected(self):
         """
