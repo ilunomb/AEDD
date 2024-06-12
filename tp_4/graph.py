@@ -4,6 +4,7 @@ import time
 import numpy as np
 from typing import Optional, Any, List, Dict, Set, Tuple, Generator
 
+import scipy as sp
 from tqdm import tqdm
 
 class Graph:
@@ -100,30 +101,30 @@ class Graph:
         components = self.weakly_connected_components()
         return len(components)
     
-    def floyd_warshall_partial(self, sample_size: int) -> float:
-        vertices = list(self._graph.keys())
-        sampled_vertices = random.sample(vertices, sample_size)
-        dist = {v: {u: float('inf') for u in sampled_vertices} for v in sampled_vertices}
+    # def floyd_warshall_partial(self, sample_size: int) -> float:
+    #     vertices = list(self._graph.keys())
+    #     sampled_vertices = random.sample(vertices, sample_size)
+    #     dist = {v: {u: float('inf') for u in sampled_vertices} for v in sampled_vertices}
 
-        for v in sampled_vertices:
-            dist[v][v] = 0
+    #     for v in sampled_vertices:
+    #         dist[v][v] = 0
 
-        for v in sampled_vertices:
-            for u, weight in self._graph[v]['neighbors'].items():
-                if u in sampled_vertices:
-                    dist[v][u] = weight
+    #     for v in sampled_vertices:
+    #         for u, weight in self._graph[v]['neighbors'].items():
+    #             if u in sampled_vertices:
+    #                 dist[v][u] = weight
 
-        start_time = time.time()
+    #     start_time = time.time()
 
-        for k in sampled_vertices:
-            for i in sampled_vertices:
-                for j in sampled_vertices:
-                    if dist[i][j] > dist[i][k] + dist[k][j]:
-                        dist[i][j] = dist[i][k] + dist[k][j]
+    #     for k in sampled_vertices:
+    #         for i in sampled_vertices:
+    #             for j in sampled_vertices:
+    #                 if dist[i][j] > dist[i][k] + dist[k][j]:
+    #                     dist[i][j] = dist[i][k] + dist[k][j]
 
-        end_time = time.time()
+    #     end_time = time.time()
 
-        return end_time - start_time
+    #     return end_time - start_time
 
     def bfs(self, start: str) -> Tuple[Dict[str, str], Dict[str, int]]:
         """
@@ -147,30 +148,30 @@ class Graph:
                     
         return par, dist
 
-    def print_shortest_path(self, start: str, end: str) -> None:
-        """
-        Print the shortest path from start to end
-        :param start: The start vertex
-        :param end: The end vertex
-        """
-        if not self.vertex_exists(start) or not self.vertex_exists(end):
-            print("One or both vertices not found in the graph")
-            return
+    # def print_shortest_path(self, start: str, end: str) -> None:
+    #     """
+    #     Print the shortest path from start to end
+    #     :param start: The start vertex
+    #     :param end: The end vertex
+    #     """
+    #     if not self.vertex_exists(start) or not self.vertex_exists(end):
+    #         print("One or both vertices not found in the graph")
+    #         return
         
-        par, dist = self.bfs(start)
+    #     par, dist = self.bfs(start)
         
-        if dist[end] == float('inf'):
-            print("Source and Destination are not connected")
-            return
+    #     if dist[end] == float('inf'):
+    #         print("Source and Destination are not connected")
+    #         return
         
-        path = []
-        current_node = end
-        while current_node is not None:
-            path.append(current_node)
-            current_node = par[current_node]
+    #     path = []
+    #     current_node = end
+    #     while current_node is not None:
+    #         path.append(current_node)
+    #         current_node = par[current_node]
         
-        path.reverse()
-        print(" -> ".join(path))
+    #     path.reverse()
+    #     print(" -> ".join(path))
 
     def estimate_shortest_paths(self, samples: int) -> float:
         vertices = list(self._graph.keys())
@@ -182,101 +183,61 @@ class Graph:
         end_time = time.time()
 
         return end_time - start_time
+    
+    def estimate_diameter(self, samples: int) -> float:
+        """
+        Estimate the diameter of the graph by sampling a subset of vertices and performing BFS
+        from each sampled vertex to find the maximum distance to any other vertex.
+        :param samples: The number of vertices to sample
+        :return: An estimate of the diameter of the graph
+        """
+        vertices = list(self._graph.keys())
+        sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
+
+        max_distance = 0
+
+        for vertex in sampled_vertices:
+            _, dist = self.bfs(vertex)
+            finite_distances = [d for d in dist.values() if d < float('inf')]
+            if finite_distances:
+                max_distance = max(max_distance, max(finite_distances))
+
+        return max_distance
 
 
+    def pagerank(self, damping_factor: float = 0.85, max_iterations: int = 100, tol: float = 1.0e-6) -> Dict[str, float]:
+        """
+        Computes the PageRank for each vertex
+        :param damping_factor: the damping factor (usually set to 0.85)
+        :param max_iterations: the maximum number of iterations
+        :param tol: the tolerance to check for convergence
+        :return: a dictionary with vertices as keys and PageRank as values
+        """
+        num_vertices = len(self._graph)
+        if num_vertices == 0:
+            return {}
 
+        # Initialize the PageRank of each vertex to 1 / num_vertices
+        pagerank = {vertex: 1 / num_vertices for vertex in self._graph}
+        new_pagerank = pagerank.copy()
 
-    # def _initialize_single_source(self, source):
-    #     dist = {vertex: float('inf') for vertex in self._graph}
-    #     dist[source] = 0
-    #     return dist
+        for iteration in range(max_iterations):
+            # Calculate new PageRank values
+            for vertex in self._graph:
+                rank_sum = 0
+                for neighbor in self._graph:
+                    if vertex in self._graph[neighbor]['neighbors']:
+                        rank_sum += pagerank[neighbor] / len(self._graph[neighbor]['neighbors'])
+                new_pagerank[vertex] = (1 - damping_factor) / num_vertices + damping_factor * rank_sum
 
-    # def _relax(self, u, v, weight, dist):
-    #     if dist[u] + weight < dist[v]:
-    #         dist[v] = dist[u] + weight
+            # Check for convergence
+            diff = sum(abs(new_pagerank[vertex] - pagerank[vertex]) for vertex in self._graph)
+            if diff < tol:
+                break
 
-    # def bellman_ford(self, source):
-    #     dist = self._initialize_single_source(source)
-    #     for _ in range(len(self._graph) - 1):
-    #         for u in self._graph:
-    #             for v, weight in self._graph[u]['neighbors'].items():
-    #                 self._relax(u, v, weight, dist)
-    #     for u in self._graph:
-    #         for v, weight in self._graph[u]['neighbors'].items():
-    #             if dist[u] + weight < dist[v]:
-    #                 raise ValueError("Graph contains a negative-weight cycle")
-    #     return dist
+            pagerank = new_pagerank.copy()
 
-    # def dijkstra(self, source):
-    #     dist = self._initialize_single_source(source)
-    #     pq = [(0, source)]
-    #     while pq:
-    #         current_dist, u = heapq.heappop(pq)
-    #         if current_dist > dist[u]:
-    #             continue
-    #         for v, weight in self._graph[u]['neighbors'].items():
-    #             if dist[u] + weight < dist[v]:
-    #                 dist[v] = dist[u] + weight
-    #                 heapq.heappush(pq, (dist[v], v))
-    #     return dist
-
-    # def johnson(self):
-    #     # Step 1: Add a new vertex s and connect it to all other vertices with edge weight 0
-    #     s = 's'
-    #     self.add_vertex(s)
-    #     for vertex in self._graph:
-    #         if vertex != s:
-    #             self.add_edge(s, vertex, 0)
-
-    #     # Step 2: Run Bellman-Ford from the new vertex s
-    #     try:
-    #         h = self.bellman_ford(s)
-    #     except ValueError:
-    #         print("Graph contains a negative-weight cycle")
-    #         return
-
-    #     # Step 3: Remove the added vertex s
-    #     del self._graph[s]
-
-    #     # Step 4: Reweight all edges
-    #     for u in self._graph:
-    #         for v in self._graph[u]['neighbors']:
-    #             self._graph[u]['neighbors'][v] += h[u] - h[v]
-
-    #     # Step 5: Run Dijkstra's algorithm for each vertex
-    #     all_pairs_dist = {}
-    #     for u in self._graph:
-    #         all_pairs_dist[u] = self.dijkstra(u)
-
-    #     # Step 6: Reverse the reweighting
-    #     for u in all_pairs_dist:
-    #         for v in all_pairs_dist[u]:
-    #             if all_pairs_dist[u][v] != float('inf'):
-    #                 all_pairs_dist[u][v] += h[v] - h[u]
-
-    #     return all_pairs_dist
-
-    # def estimate_johnson_time(self, sample_size: int):
-    #     vertices = list(self._graph.keys())
-    #     sampled_vertices = random.sample(vertices, sample_size)
-
-    #     # Create a subgraph with the sampled vertices
-    #     subgraph = Graph()
-    #     for v in sampled_vertices:
-    #         subgraph.add_vertex(v)
-    #     for u in sampled_vertices:
-    #         for v in self._graph[u]['neighbors']:
-    #             if v in sampled_vertices:
-    #                 subgraph.add_edge(u, v, self._graph[u]['neighbors'][v])
-
-    #     start_time = time.time()
-    #     subgraph.johnson()
-    #     end_time = time.time()
-
-    #     time_taken = end_time - start_time
-    #     estimated_time = time_taken * (len(self._graph) / sample_size) ** 3
-
-    #     return estimated_time
+        return pagerank
     
     def transpose(self) -> 'Graph':
         """
@@ -337,53 +298,3 @@ class Graph:
                     if undirected_graph.edge_exists(neighbors[i], neighbors[j]):
                         count += 1
         return count // 3
-    
-    def pagerank(self, alpha=0.85, max_iterations=100, tolerance=1e-6) -> Dict[str, float]:
-        """
-        Computes the PageRank of each vertex in the graph
-        :param alpha: damping factor (default is 0.85)
-        :param max_iterations: maximum number of iterations (default is 100)
-        :param tolerance: tolerance to check convergence (default is 1e-6)
-        :return: dictionary with vertices as keys and PageRank as values
-        """
-        num_vertices = len(self._graph)
-        if num_vertices == 0:
-            return {}
-
-        # Initialize the PageRank values
-        page_rank = {vertex: 1.0 / num_vertices for vertex in self._graph}
-        new_page_rank = page_rank.copy()
-        out_degree = {vertex: len(self.get_neighbors(vertex)) for vertex in self._graph}
-
-        converge = False
-        record_tolerance = 0
-
-        for i in range(max_iterations):
-            run_tolerance = 0
-
-            for node in tqdm(self._graph, desc=f'Iteration {i + 1}', total=num_vertices):
-                rank = (1 - alpha) / num_vertices  # effect of teleport
-
-                for in_node in self._graph:
-                    if node in self._graph[in_node]['neighbors']:
-                        rank += alpha * page_rank[in_node] / out_degree[in_node]  # effect of the nodes that point to the node
-
-                new_page_rank[node] = rank
-
-                diff = abs(new_page_rank[node] - page_rank[node])
-                run_tolerance += diff
-
-            page_rank = new_page_rank.copy()
-            record_tolerance = run_tolerance
-
-            # Check whether converge
-            if run_tolerance < tolerance:
-                converge = True
-                print(f"Converged at iteration {i+1}")
-                break
-            print(f"Run tolerance for iteration {i+1} is {run_tolerance}")
-
-        if not converge:
-            print(f"Did not converge, final tolerance: {record_tolerance}")
-
-        return page_rank

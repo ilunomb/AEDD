@@ -24,7 +24,7 @@ with open('tp_4\web-Google.txt', 'r') as file:
 # print("Número total de componentes conexas:", num_wcc)
 
 # #Tamaño de la muestra para la estimación
-# sample_size = 100
+sample_size = 100
 # # Estimate time to calculate all shortest paths
 # time_taken = page_graph.estimate_shortest_paths(samples=sample_size)
 # # time_taken = page_graph.floyd_warshall_partial(sample_size) # O(V^3)
@@ -41,19 +41,31 @@ with open('tp_4\web-Google.txt', 'r') as file:
 # estimated_time_formatted = "{} hours, {} minutes, {} seconds".format(int(hours), int(minutes), int(seconds))
 # print(estimated_time_formatted)
 
-start = time.time()
-num_triangles = page_graph.count_triangles()
-end = time.time()
-print("Número total de triángulos en el grafo:", num_triangles)
-print("Tiempo de ejecución:", end - start, "segundos")
+# start = time.time()
+# num_triangles = page_graph.count_triangles()
+# end = time.time()
+# print("Número total de triángulos en el grafo:", num_triangles)
+# print("Tiempo de ejecución:", end - start, "segundos")
+
+# start = time.time()
+# num_triangles_cycle, triangles = page_graph.count_and_list_cycle_triangles()
+# end = time.time()
+# print("Número de triángulos cycle en el grafo:", num_triangles_cycle)
+# print("Tiempo de ejecución:", end - start, "segundos")
 
 start = time.time()
-num_triangles_cycle, triangles = page_graph.count_and_list_cycle_triangles()
+diameter = page_graph.estimate_diameter(sample_size)
 end = time.time()
-print("Número de triángulos cycle en el grafo:", num_triangles_cycle)
+
+print("Diámetro estimado del grafo:", diameter)
 print("Tiempo de ejecución:", end - start, "segundos")
 
 # page_rank = page_graph.pagerank()
+# top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
+# for node, rank in top_page:
+#     print(f"Node: {node}, PageRank: {rank}")
+
+
 
 # top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
 # for node, rank in top_page:
