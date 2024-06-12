@@ -53,17 +53,20 @@ sample_size = 100
 # print("Número de triángulos cycle en el grafo:", num_triangles_cycle)
 # print("Tiempo de ejecución:", end - start, "segundos")
 
+# start = time.time()
+# diameter = page_graph.estimate_diameter(sample_size)
+# end = time.time()
+
+# print("Diámetro estimado del grafo:", diameter)
+# print("Tiempo de ejecución:", end - start, "segundos")
+
 start = time.time()
-diameter = page_graph.estimate_diameter(sample_size)
+page_rank = page_graph.page_rank()
+top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
 end = time.time()
-
-print("Diámetro estimado del grafo:", diameter)
 print("Tiempo de ejecución:", end - start, "segundos")
-
-# page_rank = page_graph.pagerank()
-# top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
-# for node, rank in top_page:
-#     print(f"Node: {node}, PageRank: {rank}")
+for node, rank in top_page:
+    print(f"Node: {node}, PageRank: {rank}")
 
 
 

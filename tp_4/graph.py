@@ -205,39 +205,51 @@ class Graph:
         return max_distance
 
 
-    def pagerank(self, damping_factor: float = 0.85, max_iterations: int = 100, tol: float = 1.0e-6) -> Dict[str, float]:
+    def page_rank(self, damping_factor: float = 0.85, max_iterations: int = 100, tol: float = 1.0e-6) -> Dict[str, float]:
         """
-        Computes the PageRank for each vertex
-        :param damping_factor: the damping factor (usually set to 0.85)
-        :param max_iterations: the maximum number of iterations
-        :param tol: the tolerance to check for convergence
-        :return: a dictionary with vertices as keys and PageRank as values
+        Computes PageRank for each vertex in the graph.
+        :param graph: the graph
+        :param damping_factor: the damping factor (default 0.85)
+        :param max_iterations: maximum number of iterations (default 100)
+        :param tol: tolerance for convergence (default 1.0e-6)
+        :return: a dictionary of vertex PageRank values
         """
-        num_vertices = len(self._graph)
+        vertices = list(self._graph.keys())
+        num_vertices = len(vertices)
         if num_vertices == 0:
             return {}
 
-        # Initialize the PageRank of each vertex to 1 / num_vertices
-        pagerank = {vertex: 1 / num_vertices for vertex in self._graph}
-        new_pagerank = pagerank.copy()
+        # Initialize PageRank values
+        page_rank_values = {vertex: 1.0 / num_vertices for vertex in vertices}
+
+        #create L dictionary
+        L = {vertex: len(self.get_neighbors(vertex)) for vertex in vertices}
+
+        #create dict of vertices that reference the current vertex
+        # R = {vertex: [v for v in vertices if self.edge_exists(v, vertex)] for vertex in vertices}
+
+        transposed_graph = self.transpose()
+
+        R = {vertex: list(transposed_graph.get_neighbors(vertex)) for vertex in transposed_graph._graph}
 
         for iteration in range(max_iterations):
-            # Calculate new PageRank values
-            for vertex in self._graph:
-                rank_sum = 0
-                for neighbor in self._graph:
-                    if vertex in self._graph[neighbor]['neighbors']:
-                        rank_sum += pagerank[neighbor] / len(self._graph[neighbor]['neighbors'])
-                new_pagerank[vertex] = (1 - damping_factor) / num_vertices + damping_factor * rank_sum
+            new_page_rank_values = {}
+            for vertex in vertices:
+                rank_sum = 0.0
+                for v in R[vertex]:
+                    rank_sum += page_rank_values[v] / L[v]
+                new_page_rank_values[vertex] = (1 - damping_factor) / num_vertices + damping_factor * rank_sum
 
             # Check for convergence
-            diff = sum(abs(new_pagerank[vertex] - pagerank[vertex]) for vertex in self._graph)
+            diff = sum(abs(new_page_rank_values[vertex] - page_rank_values[vertex]) for vertex in vertices)
             if diff < tol:
+                print(f"Converged after {iteration + 1} iterations")
                 break
 
-            pagerank = new_pagerank.copy()
+            page_rank_values = new_page_rank_values
 
-        return pagerank
+        return page_rank_values
+
     
     def transpose(self) -> 'Graph':
         """
