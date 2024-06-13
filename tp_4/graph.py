@@ -13,6 +13,12 @@ class Graph:
     """
     def __init__(self):
         self._graph = {}
+        self._index = 0
+        self._stack = []
+        self._indices = {}
+        self._low_links = {}
+        self._on_stack = set()
+        self._sccs = []
 
     def add_vertex(self, vertex: str, data: Optional[Any]=None) -> None:
         """
@@ -100,31 +106,6 @@ class Graph:
     def number_of_weakly_connected_components(self) -> int:
         components = self.weakly_connected_components()
         return len(components)
-    
-    # def floyd_warshall_partial(self, sample_size: int) -> float:
-    #     vertices = list(self._graph.keys())
-    #     sampled_vertices = random.sample(vertices, sample_size)
-    #     dist = {v: {u: float('inf') for u in sampled_vertices} for v in sampled_vertices}
-
-    #     for v in sampled_vertices:
-    #         dist[v][v] = 0
-
-    #     for v in sampled_vertices:
-    #         for u, weight in self._graph[v]['neighbors'].items():
-    #             if u in sampled_vertices:
-    #                 dist[v][u] = weight
-
-    #     start_time = time.time()
-
-    #     for k in sampled_vertices:
-    #         for i in sampled_vertices:
-    #             for j in sampled_vertices:
-    #                 if dist[i][j] > dist[i][k] + dist[k][j]:
-    #                     dist[i][j] = dist[i][k] + dist[k][j]
-
-    #     end_time = time.time()
-
-    #     return end_time - start_time
 
     def bfs(self, start: str) -> Tuple[Dict[str, str], Dict[str, int]]:
         """
@@ -309,4 +290,116 @@ class Graph:
                 for j in range(i + 1, len(neighbors)):
                     if undirected_graph.edge_exists(neighbors[i], neighbors[j]):
                         count += 1
-        return count // 3
+        return count // 3       
+    
+    # def dfs_find_cycles(self, start_vertex: str) -> List[int]:
+    #     """
+    #     Perform DFS from the start vertex to find all cycles including this vertex.
+    #     :param start_vertex: The start vertex for the DFS
+    #     :return: List of cycle lengths found
+    #     """
+    #     stack = [(start_vertex, [start_vertex])]
+    #     cycles = []
+
+    #     while stack:
+    #         (vertex, path) = stack.pop()
+    #         for neighbor in self.get_neighbors(vertex):
+    #             if neighbor == start_vertex and len(path) > 2:
+    #                 cycles.append(len(path))
+    #             elif neighbor not in path:
+    #                 stack.append((neighbor, path + [neighbor]))
+        
+    #     return cycles
+
+    # def estimate_circumference(self, samples: int = 100) -> int:
+    #     """
+    #     Estimate the circumference of the graph by sampling a subset of vertices and performing DFS
+    #     to find cycles that include the sampled vertices.
+    #     :param samples: The number of vertices to sample
+    #     :return: An estimate of the circumference of the graph
+    #     """
+    #     vertices = list(self._graph.keys())
+    #     sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
+    #     max_cycle_length = 0
+
+    #     for vertex in sampled_vertices:
+    #         cycles = self.dfs_find_cycles(vertex)
+    #         if cycles:
+    #             max_cycle_length = max(max_cycle_length, max(cycles))
+
+    #     return max_cycle_length
+
+        
+    def _strong_connect(self, vertex: str) -> None:
+        """
+        Non-recursive helper function for Tarjan's algorithm to find strongly connected components
+        """
+        stack = [(vertex, 0)]
+        visited = set()
+        
+        while stack:
+            v, index = stack[-1]
+            
+            if v not in visited:
+                visited.add(v)
+                self._indices[v] = self._index
+                self._low_links[v] = self._index
+                self._index += 1
+                self._stack.append(v)
+                self._on_stack.add(v)
+            
+            neighbors = self.get_neighbors(v)
+            
+            if index < len(neighbors):
+                neighbor = neighbors[index]
+                stack[-1] = (v, index + 1)
+                
+                if neighbor not in self._indices:
+                    stack.append((neighbor, 0))
+                elif neighbor in self._on_stack:
+                    self._low_links[v] = min(self._low_links[v], self._indices[neighbor])
+            else:
+                if self._low_links[v] == self._indices[v]:
+                    scc = set()
+                    while True:
+                        w = self._stack.pop()
+                        self._on_stack.remove(w)
+                        scc.add(w)
+                        if w == v:
+                            break
+                    self._sccs.append(scc)
+                stack.pop()
+                if stack:
+                    w, _ = stack[-1]
+                    self._low_links[w] = min(self._low_links[w], self._low_links[v])
+
+    def find_strongly_connected_components(self) -> List[Set[str]]:
+        """
+        Finds and returns all strongly connected components
+        """
+        self._index = 0
+        self._stack = []
+        self._indices = {}
+        self._low_links = {}
+        self._on_stack = set()
+        self._sccs = []
+
+        for vertex in self._graph:
+            if vertex not in self._indices:
+                self._strong_connect(vertex)
+
+        return self._sccs
+
+    def largest_strongly_connected_component(self) -> int:
+        """
+        Returns the size of the largest strongly connected component
+        """
+        sccs = self.find_strongly_connected_components()
+        return max(len(scc) for scc in sccs) if sccs else 0
+
+    def number_of_strongly_connected_components(self) -> int:
+        """
+        Returns the number of strongly connected components
+        """
+        sccs = self.find_strongly_connected_components()
+        return len(sccs)

@@ -60,16 +60,15 @@ sample_size = 100
 # print("Diámetro estimado del grafo:", diameter)
 # print("Tiempo de ejecución:", end - start, "segundos")
 
-start = time.time()
-page_rank = page_graph.page_rank()
-top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
-end = time.time()
-print("Tiempo de ejecución:", end - start, "segundos")
-for node, rank in top_page:
-    print(f"Node: {node}, PageRank: {rank}")
-
-
-
+# start = time.time()
+# page_rank = page_graph.page_rank()
 # top_page = sorted(page_rank.items(), key=lambda x: x[1], reverse=True)[:10]
+# end = time.time()
+# print("Tiempo de ejecución:", end - start, "segundos")
 # for node, rank in top_page:
 #     print(f"Node: {node}, PageRank: {rank}")
+
+start = time.time()
+circumference = page_graph.largest_strongly_connected_component()
+end = time.time()
+print("Circunferencia estimada del grafo:", circumference)  
