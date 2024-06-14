@@ -30,14 +30,12 @@ sample_size = 100
 # # time_taken = page_graph.floyd_warshall_partial(sample_size) # O(V^3)
 # # time_taken = page_graph.estimate_johnson_time(sample_size) # O(V^2 * E + V^2 * log(V))
 
-
 # # Escalar el tiempo al tamaño completo del grafo
 # num_vertices = 875713
 # estimated_time = time_taken * (num_vertices / sample_size)  # estimated time in seconds
 
 # hours, remainder = divmod(estimated_time, 3600)  # there are 3600 seconds in an hour
 # minutes, seconds = divmod(remainder, 60)  # there are 60 seconds in a minute
-
 # estimated_time_formatted = "{} hours, {} minutes, {} seconds".format(int(hours), int(minutes), int(seconds))
 # print(estimated_time_formatted)
 
@@ -54,9 +52,8 @@ sample_size = 100
 # print("Tiempo de ejecución:", end - start, "segundos")
 
 # start = time.time()
-# diameter = page_graph.estimate_diameter(sample_size)
+# diameter = page_graph.estimate_diameter(samples=10)
 # end = time.time()
-
 # print("Diámetro estimado del grafo:", diameter)
 # print("Tiempo de ejecución:", end - start, "segundos")
 
@@ -68,7 +65,27 @@ sample_size = 100
 # for node, rank in top_page:
 #     print(f"Node: {node}, PageRank: {rank}")
 
-start = time.time()
-circumference = page_graph.largest_strongly_connected_component()
-end = time.time()
-print("Circunferencia estimada del grafo:", circumference)  
+# start = time.time()
+# circumference = page_graph.largest_strongly_connected_component()
+# n_scc = page_graph.number_of_strongly_connected_components()
+# end = time.time()
+# print("Circunferencia estimada del grafo:", circumference)
+# print("Número de componentes fuertemente conexas:", n_scc)
+
+undir = page_graph.make_copy_graph_undirected()
+
+start = '143777'
+
+end = '576630'
+
+par, dist = undir.bfs(start)
+
+lenght_to = dist['576630']
+
+path = par['576630']
+
+while path != start:
+    print(path)
+    path = par[path]
+
+print(lenght_to)

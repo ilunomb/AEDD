@@ -3,9 +3,7 @@ import random
 import time
 import numpy as np
 from typing import Optional, Any, List, Dict, Set, Tuple, Generator
-
 import scipy as sp
-from tqdm import tqdm
 
 class Graph:
     """
@@ -173,15 +171,33 @@ class Graph:
         :return: An estimate of the diameter of the graph
         """
         vertices = list(self._graph.keys())
-        sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
+        vertex = random.choice(vertices)
 
         max_distance = 0
 
-        for vertex in sampled_vertices:
+        # for vertex in sampled_vertices:
+        #     _, dist = self.bfs(vertex)
+        #     finite_distances = [d for d in dist.values() if d < float('inf')]
+        #     if finite_distances:
+        #         max_distance = max(max_distance, max(finite_distances))
+
+        for _ in range(samples):
             _, dist = self.bfs(vertex)
-            finite_distances = [d for d in dist.values() if d < float('inf')]
-            if finite_distances:
-                max_distance = max(max_distance, max(finite_distances))
+            
+            dist = {k: v for k, v in dist.items() if v < float('inf')}
+
+            #get the maximum distance and the vertex that has it
+            max_dist = max(dist.values())
+
+            max_vertex = max(dist, key=dist.get)
+
+            print(f"Vertex: {vertex}, Max Distance: {max_dist}, Max Vertex: {max_vertex}")
+
+            #if the maximum distance is greater than the current maximum distance, update it
+            if max_dist > max_distance:
+                max_distance = max_dist
+            
+            vertex = max_vertex
 
         return max_distance
 
