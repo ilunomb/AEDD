@@ -74,18 +74,29 @@ sample_size = 100
 
 undir = page_graph.make_copy_graph_undirected()
 
-start = '143777'
+start = time.time()
+diameter = undir.estimate_diameter(samples=10)
+end = time.time()
+print("Diámetro estimado del grafo:", diameter)
+print("Tiempo de ejecución:", end - start, "segundos")
 
-end = '576630'
+# start = '143777'
 
-par, dist = undir.bfs(start)
+# end = '576630'
 
-lenght_to = dist['576630']
+# par, dist = undir.bfs(start)
 
-path = par['576630']
+# lenght_to = dist['576630']
 
-while path != start:
-    print(path)
-    path = par[path]
+# path = par['576630']
 
-print(lenght_to)
+# print(start)
+
+# while path != start:
+#     print(path)
+#     path = par[path]
+
+# print(end)
+
+
+# print(lenght_to)
