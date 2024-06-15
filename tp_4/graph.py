@@ -342,77 +342,156 @@ class Graph:
 
     #     return max_cycle_length
 
+    # def _strong_connect(self, vertex: str) -> None:
+    #     """
+    #     Non-recursive helper function for Tarjan's algorithm to find strongly connected components
+    #     """
+    #     stack = [(vertex, 0)]
+    #     visited = set()
         
-    def _strong_connect(self, vertex: str) -> None:
-        """
-        Non-recursive helper function for Tarjan's algorithm to find strongly connected components
-        """
-        stack = [(vertex, 0)]
-        visited = set()
-        
-        while stack:
-            v, index = stack[-1]
+    #     while stack:
+    #         v, index = stack[-1]
             
-            if v not in visited:
-                visited.add(v)
-                self._indices[v] = self._index
-                self._low_links[v] = self._index
-                self._index += 1
-                self._stack.append(v)
-                self._on_stack.add(v)
+    #         if v not in visited:
+    #             visited.add(v)
+    #             self._indices[v] = self._index
+    #             self._low_links[v] = self._index
+    #             self._index += 1
+    #             self._stack.append(v)
+    #             self._on_stack.add(v)
             
-            neighbors = self.get_neighbors(v)
+    #         neighbors = self.get_neighbors(v)
             
-            if index < len(neighbors):
-                neighbor = neighbors[index]
-                stack[-1] = (v, index + 1)
+    #         if index < len(neighbors):
+    #             neighbor = neighbors[index]
+    #             stack[-1] = (v, index + 1)
                 
-                if neighbor not in self._indices:
-                    stack.append((neighbor, 0))
-                elif neighbor in self._on_stack:
-                    self._low_links[v] = min(self._low_links[v], self._indices[neighbor])
+    #             if neighbor not in self._indices:
+    #                 stack.append((neighbor, 0))
+    #             elif neighbor in self._on_stack:
+    #                 self._low_links[v] = min(self._low_links[v], self._indices[neighbor])
+    #         else:
+    #             if self._low_links[v] == self._indices[v]:
+    #                 scc = set()
+    #                 while True:
+    #                     w = self._stack.pop()
+    #                     self._on_stack.remove(w)
+    #                     scc.add(w)
+    #                     if w == v:
+    #                         break
+    #                 self._sccs.append(scc)
+    #             stack.pop()
+    #             if stack:
+    #                 w, _ = stack[-1]
+    #                 self._low_links[w] = min(self._low_links[w], self._low_links[v])
+
+    # def find_strongly_connected_components(self) -> List[Set[str]]:
+    #     """
+    #     Finds and returns all strongly connected components
+    #     """
+    #     self._index = 0
+    #     self._stack = []
+    #     self._indices = {}
+    #     self._low_links = {}
+    #     self._on_stack = set()
+    #     self._sccs = []
+
+    #     for vertex in self._graph:
+    #         if vertex not in self._indices:
+    #             self._strong_connect(vertex)
+
+    #     return self._sccs
+
+    # def largest_strongly_connected_component(self) -> int:
+    #     """
+    #     Returns the size of the largest strongly connected component
+    #     """
+    #     sccs = self.find_strongly_connected_components()
+    #     return max(len(scc) for scc in sccs) if sccs else 0
+
+    # def number_of_strongly_connected_components(self) -> int:
+    #     """
+    #     Returns the number of strongly connected components
+    #     """
+    #     sccs = self.find_strongly_connected_components()
+    #     return len(sccs)
+    
+    def floyd(self, f, x0) -> (int, int):
+        """Floyd's cycle detection algorithm."""
+        tortoise = f(x0) # f(x0) is the element/node next to x0.
+        hare = f(f(x0))
+        while tortoise != hare:
+            tortoise = f(tortoise)
+            hare = f(f(hare))
+
+        mu = 0
+        tortoise = x0
+        while tortoise != hare:
+            tortoise = f(tortoise)
+            hare = f(hare)   # Hare and tortoise move at same speed
+            mu += 1
+
+        lam = 1
+        hare = f(tortoise)
+        while tortoise != hare:
+            hare = f(hare)
+            lam += 1
+
+        return lam, mu
+
+    def brent(self, f, x0) -> (int, int):
+        """Brent's cycle detection algorithm."""
+        power = lam = 1
+        tortoise = x0
+        hare = f(x0)  # f(x0) is the element/node next to x0.
+        while tortoise != hare:
+            if power == lam:  # time to start a new power of two?
+                tortoise = hare
+                power *= 2
+                lam = 0
+            hare = f(hare)
+            lam += 1
+
+        tortoise = hare = x0
+        for i in range(lam):
+            hare = f(hare)
+
+        mu = 0
+        while tortoise != hare:
+            tortoise = f(tortoise)
+            hare = f(hare)
+            mu += 1
+
+        return lam, mu
+
+    def find_largest_cycle(self, algorithm='floyd', samples: int = 10) -> int:
+        """
+        Find the largest cycle in the graph using the specified cycle detection algorithm.
+        :param graph: The Graph object
+        :param algorithm: The cycle detection algorithm to use ('floyd' or 'brent')
+        :return: The length of the largest cycle (circumference)
+        """
+        vertices = list(self._graph.keys())
+        if not vertices:
+            return 0
+
+        def get_next_vertex(v):
+            neighbors = self.get_neighbors(v)
+            if neighbors:
+                return neighbors[0]
+            return v
+
+        largest_cycle = 0
+
+        sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
+
+        for vertex in sampled_vertices:
+            if algorithm == 'floyd':
+                lam, _ = self.floyd(get_next_vertex, vertex)
+            elif algorithm == 'brent':
+                lam, _ = self.brent(get_next_vertex, vertex)
             else:
-                if self._low_links[v] == self._indices[v]:
-                    scc = set()
-                    while True:
-                        w = self._stack.pop()
-                        self._on_stack.remove(w)
-                        scc.add(w)
-                        if w == v:
-                            break
-                    self._sccs.append(scc)
-                stack.pop()
-                if stack:
-                    w, _ = stack[-1]
-                    self._low_links[w] = min(self._low_links[w], self._low_links[v])
+                raise ValueError("Unknown algorithm specified.")
+            largest_cycle = max(largest_cycle, lam)
 
-    def find_strongly_connected_components(self) -> List[Set[str]]:
-        """
-        Finds and returns all strongly connected components
-        """
-        self._index = 0
-        self._stack = []
-        self._indices = {}
-        self._low_links = {}
-        self._on_stack = set()
-        self._sccs = []
-
-        for vertex in self._graph:
-            if vertex not in self._indices:
-                self._strong_connect(vertex)
-
-        return self._sccs
-
-    def largest_strongly_connected_component(self) -> int:
-        """
-        Returns the size of the largest strongly connected component
-        """
-        sccs = self.find_strongly_connected_components()
-        return max(len(scc) for scc in sccs) if sccs else 0
-
-    def number_of_strongly_connected_components(self) -> int:
-        """
-        Returns the number of strongly connected components
-        """
-        sccs = self.find_strongly_connected_components()
-        return len(sccs)
+        return largest_cycle

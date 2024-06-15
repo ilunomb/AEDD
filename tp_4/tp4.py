@@ -25,6 +25,7 @@ with open('tp_4\web-Google.txt', 'r') as file:
 
 # #Tamaño de la muestra para la estimación
 sample_size = 100
+
 # # Estimate time to calculate all shortest paths
 # time_taken = page_graph.estimate_shortest_paths(samples=sample_size)
 # # time_taken = page_graph.floyd_warshall_partial(sample_size) # O(V^3)
@@ -72,13 +73,13 @@ sample_size = 100
 # print("Circunferencia estimada del grafo:", circumference)
 # print("Número de componentes fuertemente conexas:", n_scc)
 
-undir = page_graph.make_copy_graph_undirected()
+# undir = page_graph.make_copy_graph_undirected()
 
-start = time.time()
-diameter = undir.estimate_diameter(samples=10)
-end = time.time()
-print("Diámetro estimado del grafo:", diameter)
-print("Tiempo de ejecución:", end - start, "segundos")
+# start = time.time()
+# diameter = undir.estimate_diameter(samples=10)
+# end = time.time()
+# print("Diámetro estimado del grafo:", diameter)
+# print("Tiempo de ejecución:", end - start, "segundos")
 
 # start = '143777'
 
@@ -98,5 +99,16 @@ print("Tiempo de ejecución:", end - start, "segundos")
 
 # print(end)
 
-
 # print(lenght_to)
+
+start = time.time()
+circumference = page_graph.find_largest_cycle(algorithm='floyd', samples=1000000000000000)
+end = time.time()
+print("Circunferencia estimada del grafo:", circumference)
+print("Tiempo de ejecución:", end - start, "segundos")
+
+start = time.time()
+circumference = page_graph.find_largest_cycle(algorithm='brent', samples=1000000000000000)
+end = time.time()
+print("Circunferencia estimada del grafo:", circumference)
+print("Tiempo de ejecución:", end - start, "segundos")
