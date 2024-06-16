@@ -152,25 +152,19 @@ sample_size = 100
 
 # 2)
 
-# start = time.time()
-# global_clustering_coefficient = page_graph.global_clustering_coefficient()
-# end = time.time()
-# print("Coeficiente de clustering global:", global_clustering_coefficient)
-# print("Tiempo de ejecución:", end - start, "segundos")
-
-# start = time.time()
-# avarage_clustering_coefficient = page_graph.avarage_clustering_coefficient()
-# end = time.time()
-# print("Coeficiente de clustering promedio:", avarage_clustering_coefficient)
-# print("Tiempo de ejecución:", end - start, "segundos")
+start = time.time()
+avarage_clustering_coefficient = page_graph.average_clustering_coefficient_undirected()
+end = time.time()
+print("Coeficiente de clustering promedio:", avarage_clustering_coefficient)
+print("Tiempo de ejecución:", end - start, "segundos")
 
 
 # 3)
 
-start = time.time()
-betweenness_centrality = page_graph.betweenness_centrality()
-top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:10]
-end = time.time()
-print("Tiempo de ejecución:", end - start, "segundos")
-for node, centrality in top_betweenness:
-    print(f"Node: {node}, Betweenness centrality: {centrality}")
+# start = time.time()
+# betweenness_centrality = page_graph.betweenness_centrality()
+# top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:10]
+# end = time.time()
+# print("Tiempo de ejecución:", end - start, "segundos")
+# for node, centrality in top_betweenness:
+#     print(f"Node: {node}, Betweenness centrality: {centrality}")

@@ -793,43 +793,23 @@ class Graph:
     #     dummy._circuit(start_vertex, start_vertex, blocked, B, stack, cycles)
 
     #     return cycles
-
-    def global_clustering_coefficient(self) -> float:
+    
+    def average_clustering_coefficient_undirected(self) -> float:
         """
-        Calculate the global clustering coefficient of the graph
+        Calculate the average clustering coefficient of the undirected graph
         """
-        triangles = self.count_triangles()
-        connected_triplets = 0
-
+        clustering_coefficient = 0
+        undirected_graph = self.make_copy_graph_undirected()
         for vertex in self._graph:
-            neighbors = self.get_neighbors(vertex)
-            connected_triplets += len(neighbors) * (len(neighbors) - 1) // 2
+            count = 0
+            neighbors = undirected_graph.get_neighbors(vertex)
+            for i in range(len(neighbors)):
+                for j in range(i + 1, len(neighbors)):
+                    if undirected_graph.edge_exists(neighbors[i], neighbors[j]):
+                        count += 1
+            clustering_coefficient += count / (len(neighbors) * (len(neighbors) - 1) / 2) if len(neighbors) > 1 else 0
+        return clustering_coefficient / len(self._graph)
 
-        return 3 * triangles / connected_triplets if connected_triplets > 0 else 0
-    
-    def clustering_coefficient(self, vertex: str) -> float:
-        """
-        Calculate the clustering coefficient of a vertex
-        """
-        neighbors = self.get_neighbors(vertex)
-        k = len(neighbors)
-        if k < 2:
-            return 0
-
-        connected_neighbors = 0
-        for i in range(k):
-            for j in range(k):
-                if self.edge_exists(neighbors[i], neighbors[j]):
-                    connected_neighbors += 1
-
-        return connected_neighbors / (k * (k - 1))
-    
-    def avarage_clustering_coefficient(self) -> float:
-        """
-        Calculate the avarage clustering coefficient of the graph
-        """
-        clustering_coefficients = [self.clustering_coefficient(vertex) for vertex in self._graph]
-        return sum(clustering_coefficients) / len(self._graph)
     
     def betweenness_centrality(self) -> Dict[str, float]:
         """
