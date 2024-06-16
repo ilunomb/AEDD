@@ -1,4 +1,5 @@
 import time
+import matplotlib.pyplot as plt
 from graph import Graph
 
 page_graph = Graph()
@@ -85,30 +86,91 @@ sample_size = 100
 
 # end = '576630'
 
-# par, dist = undir.bfs(start)
+# page_graph.print_shortest_path(start, end)
 
-# lenght_to = dist['576630']
+# start = time.time()
+# circumference = page_graph.find_largest_cycle(algorithm='floyd', samples=samples)
+# end = time.time()
+# print("Circunferencia estimada del grafo:", circumference)
+# print("Tiempo de ejecución:", end - start, "segundos")
 
-# path = par['576630']
+# start = time.time()
+# circumference = page_graph.find_largest_cycle(algorithm='brent', samples=samples)
+# end = time.time()
+# print("Circunferencia estimada del grafo:", circumference)
+# print("Tiempo de ejecución:", end - start, "segundos")
 
-# print(start)
+# start = time.time()
+# circumference, longest_cycle = page_graph.max_scc_cycle()
+# end = time.time()
+# print("Tiempo de ejecución:", end - start, "segundos")
+# print("Circunferencia estimada del grafo:", circumference)
+# print("Camino más largo:", longest_cycle)
 
-# while path != start:
-#     print(path)
-#     path = par[path]
+# #make a function that checks if a list has repeated elements
+# def has_duplicates(seq):
+#     return len(seq) != len(set(seq))
 
-# print(end)
+# # #remove the last element of the longest cycle
+# seq = longest_cycle[:-1]
 
-# print(lenght_to)
+# print(f'Tiene elementos repetidos: {has_duplicates(seq)}')
+
+# def edges_exists(graph, cycle):
+#     for i in range(len(cycle[:-1])):
+#         if not graph.edge_exists(cycle[i], cycle[i+1]):
+#             return False
+#     return True
+
+# print(f'Existen las aristas: {edges_exists(page_graph, longest_cycle)}')
+
+
+
+
+
+# PUNTOS EXTRA
+
+
+# 1)
+
+# start = time.time()
+# polygon_counts, polygons = page_graph.count_and_list_k_cycles(3)
+# end = time.time()
+# print("Número de triángulos en el grafo:", polygon_counts)
+# print("Tiempo de ejecución:", end - start, "segundos")
+
+# # Plot the results
+# plt.figure(figsize=(10, 6))
+# plt.bar(polygon_counts.keys(), polygon_counts.values())
+# plt.xlabel('Number of sides')
+# plt.ylabel('Number of polygons')
+# plt.title('Number of polygons by number of sides')
+# plt.xticks(range(3, 7))
+# plt.grid(True)
+# plt.show()
+
+
+# 2)
+
+# start = time.time()
+# global_clustering_coefficient = page_graph.global_clustering_coefficient()
+# end = time.time()
+# print("Coeficiente de clustering global:", global_clustering_coefficient)
+# print("Tiempo de ejecución:", end - start, "segundos")
+
+# start = time.time()
+# avarage_clustering_coefficient = page_graph.avarage_clustering_coefficient()
+# end = time.time()
+# print("Coeficiente de clustering promedio:", avarage_clustering_coefficient)
+# print("Tiempo de ejecución:", end - start, "segundos")
+
+
+# 3)
 
 start = time.time()
-circumference = page_graph.find_largest_cycle(algorithm='floyd', samples=1000000000000000)
+betweenness_centrality = page_graph.betweenness_centrality()
+top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:10]
 end = time.time()
-print("Circunferencia estimada del grafo:", circumference)
 print("Tiempo de ejecución:", end - start, "segundos")
-
-start = time.time()
-circumference = page_graph.find_largest_cycle(algorithm='brent', samples=1000000000000000)
-end = time.time()
-print("Circunferencia estimada del grafo:", circumference)
-print("Tiempo de ejecución:", end - start, "segundos")
+for node, centrality in top_betweenness:
+    print(f"Node: {node}, Betweenness centrality: {centrality}")
