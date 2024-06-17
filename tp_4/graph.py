@@ -1,10 +1,11 @@
-from collections import deque
+from collections import defaultdict, deque
 import itertools
 import random
 import time
 import numpy as np
 from typing import Optional, Any, List, Dict, Set, Tuple, Generator
 import scipy as sp
+from tqdm import tqdm
 
 class Graph:
     """
@@ -175,7 +176,7 @@ class Graph:
 
         max_distance = 0
 
-        for _ in range(samples): # takes into account not landing on the same component
+        for _ in range(samples): # takes into account not analyzing only one connected component
         
             vertex = random.choice(vertices)
 
@@ -305,43 +306,55 @@ class Graph:
                     if undirected_graph.edge_exists(neighbors[i], neighbors[j]):
                         count += 1
         return count // 3       
-    
-    # def dfs_find_cycles(self, start_vertex: str) -> List[int]:
-    #     """
-    #     Perform DFS from the start vertex to find all cycles including this vertex.
-    #     :param start_vertex: The start vertex for the DFS
-    #     :return: List of cycle lengths found
-    #     """
-    #     stack = [(start_vertex, [start_vertex])]
-    #     cycles = []
 
-    #     while stack:
-    #         (vertex, path) = stack.pop()
-    #         for neighbor in self.get_neighbors(vertex):
-    #             if neighbor == start_vertex and len(path) > 2:
-    #                 cycles.append(len(path))
-    #             elif neighbor not in path:
-    #                 stack.append((neighbor, path + [neighbor]))
+    def iterative_dfs_for_cycles(self, start: str) -> int:
+        """
+        Perform iterative DFS and look for cycles starting from the given vertex.
+        :param start: The start vertex
+        :return: Length of the longest cycle found
+        """
+        stack = [(start, None, 0)]  # (current_node, parent_node, depth)
+        visited = {}
+        path = []
+        longest_cycle = 0
+
+        while stack:
+            current, parent, depth = stack.pop()
+
+            if current not in visited:
+                visited[current] = depth
+                path.append(current)
+
+                for neighbor in self.get_neighbors(current):
+                    if neighbor not in visited:
+                        stack.append((neighbor, current, depth + 1))
+                    elif neighbor != parent and neighbor in path:
+                        cycle_length = depth - visited[neighbor] + 1
+                        longest_cycle = max(longest_cycle, cycle_length)
+
+                path.pop()
+            else:
+                if current in path:
+                    path.remove(current)
+
+        return longest_cycle
+
+    def estimate_circumference(self, samples: int) -> int:
+        """
+        Estimate the circumference of the graph.
+        :param samples: The number of vertices to sample
+        :return: An estimate of the circumference of the graph
+        """
+        vertices = list(self._graph.keys())
+        sampled_vertices = random.sample(vertices, samples)
         
-    #     return cycles
-
-    # def estimate_circumference(self, samples: int = 100) -> int:
-    #     """
-    #     Estimate the circumference of the graph by sampling a subset of vertices and performing DFS
-    #     to find cycles that include the sampled vertices.
-    #     :param samples: The number of vertices to sample
-    #     :return: An estimate of the circumference of the graph
-    #     """
-    #     vertices = list(self._graph.keys())
-    #     sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
-    #     max_cycle_length = 0
-
-    #     for vertex in sampled_vertices:
-    #         cycles = self.dfs_find_cycles(vertex)
-    #         if cycles:
-    #             max_cycle_length = max(max_cycle_length, max(cycles))
-
-    #     return max_cycle_length
+        longest_cycle = 0
+        
+        for vertex in tqdm(sampled_vertices, desc='Estimating Circumference', unit='vertex'):
+            cycle_length = self.iterative_dfs_for_cycles(vertex)
+            longest_cycle = max(longest_cycle, cycle_length)
+        
+        return longest_cycle
 
     def _strong_connect(self, vertex: str) -> None:
         """
@@ -487,151 +500,6 @@ class Graph:
             sccs = [scc for scc in sccs if len(scc) >= max_cycle_length]
 
         return max_cycle_length, max_cycle
-    
-    
-    # def floyd(self, f, x0) -> (int, int):
-    #     """Floyd's cycle detection algorithm."""
-    #     tortoise = f(x0) # f(x0) is the element/node next to x0.
-    #     hare = f(f(x0))
-    #     while tortoise != hare:
-    #         tortoise = f(tortoise)
-    #         hare = f(f(hare))
-
-    #     mu = 0
-    #     tortoise = x0
-    #     while tortoise != hare:
-    #         tortoise = f(tortoise)
-    #         hare = f(hare)   # Hare and tortoise move at same speed
-    #         mu += 1
-
-    #     lam = 1
-    #     hare = f(tortoise)
-    #     while tortoise != hare:
-    #         hare = f(hare)
-    #         lam += 1
-
-    #     return lam, mu
-
-    # def brent(self, f, x0) -> (int, int):
-    #     """Brent's cycle detection algorithm."""
-    #     power = lam = 1
-    #     tortoise = x0
-    #     hare = f(x0)  # f(x0) is the element/node next to x0.
-    #     while tortoise != hare:
-    #         if power == lam:  # time to start a new power of two?
-    #             tortoise = hare
-    #             power *= 2
-    #             lam = 0
-    #         hare = f(hare)
-    #         lam += 1
-
-    #     tortoise = hare = x0
-    #     for i in range(lam):
-    #         hare = f(hare)
-
-    #     mu = 0
-    #     while tortoise != hare:
-    #         tortoise = f(tortoise)
-    #         hare = f(hare)
-    #         mu += 1
-
-    #     return lam, mu
-
-    # def find_largest_cycle(self, algorithm='floyd', samples: int = 10) -> int:
-    #     """
-    #     Find the largest cycle in the graph using the specified cycle detection algorithm.
-    #     :param graph: The Graph object
-    #     :param algorithm: The cycle detection algorithm to use ('floyd' or 'brent')
-    #     :return: The length of the largest cycle (circumference)
-    #     """
-    #     vertices = list(self._graph.keys())
-    #     if not vertices:
-    #         return 0
-    
-    #     largest_cycle = 0
-    
-    #     sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
-    
-    #     for vertex in sampled_vertices:
-    #         for neighbor in self.get_neighbors(vertex):
-    #             def get_next_vertex(v):
-    #                 if v == vertex:
-    #                     return neighbor
-    #                 neighbors = self.get_neighbors(v)
-    #                 if neighbors:
-    #                     return neighbors[0]
-    #                 return v
-    
-    #             if algorithm == 'floyd':
-    #                 lam, _ = self.floyd(get_next_vertex, vertex)
-    #             elif algorithm == 'brent':
-    #                 lam, _ = self.brent(get_next_vertex, vertex)
-    #             else:
-    #                 raise ValueError("Unknown algorithm specified.")
-    #             largest_cycle = max(largest_cycle, lam)
-    
-    #     return largest_cycle
-    
-
-    # def dfs_cycle_detection_iterative(self, start_vertex: str) -> List[List[str]]:
-    #     visited = set()
-    #     stack = []
-    #     parent = {}
-    #     cycles = []
-
-    #     stack.append((start_vertex, None))
-
-    #     while stack:
-    #         vertex, prev = stack.pop()
-
-    #         if vertex in visited:
-    #             continue
-
-    #         visited.add(vertex)
-    #         parent[vertex] = prev
-
-    #         for neighbor in self.get_neighbors(vertex):
-    #             if neighbor not in visited:
-    #                 stack.append((neighbor, vertex))
-    #             elif neighbor in visited and neighbor != parent.get(vertex, None):
-    #                 # Found a cycle
-    #                 cycle = []
-    #                 current = vertex
-    #                 while current != neighbor and current is not None:
-    #                     cycle.append(current)
-    #                     current = parent[current]
-    #                 if current is not None:  # To ensure the cycle is complete
-    #                     cycle.append(neighbor)
-    #                     cycle.reverse()
-    #                     cycles.append(cycle)
-
-    #     return cycles
-
-    # def find_all_cycles(self) -> List[List[str]]:
-    #     cycles = []
-    #     visited = set()
-
-    #     for vertex in self._graph:
-    #         if vertex not in visited:
-    #             cycles.extend(self.dfs_cycle_detection_iterative(vertex))
-    #             visited.update(vertex for cycle in cycles for vertex in cycle)
-
-    #     return cycles
-
-    # def estimate_circumference(self, samples: int) -> int:
-    #     vertices = list(self._graph.keys())
-    #     if not vertices:
-    #         return 0
-
-    #     sampled_vertices = random.sample(vertices, min(samples, len(vertices)))
-    #     longest_cycle_length = 0
-
-    #     for vertex in sampled_vertices:
-    #         cycles = self.dfs_cycle_detection_iterative(vertex)
-    #         for cycle in cycles:
-    #             longest_cycle_length = max(longest_cycle_length, len(cycle))
-
-    #     return longest_cycle_length
 
     # def _strongconnect(self, vertex: str, index: int, stack: List[str], indices: Dict[str, int], low_links: Dict[str, int], on_stack: Set[str], sccs: List[List[str]]) -> int:
     #     indices[vertex] = index
@@ -849,3 +717,59 @@ class Graph:
                     CB[w] += delta[w]
 
         return CB
+    
+    def bfs_shortest_paths(self, start: str) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
+        """
+        Perform BFS and return the shortest paths and predecessor lists.
+        :param start: The start vertex
+        :return: distance dictionary and predecessor lists
+        """
+        dist = {v: float('inf') for v in self._graph}
+        pred = {v: [] for v in self._graph}
+        
+        dist[start] = 0
+        q = deque([start])
+        
+        while q:
+            node = q.popleft()
+            for neighbor in self.get_neighbors(node):
+                if dist[neighbor] == float('inf'):
+                    dist[neighbor] = dist[node] + 1
+                    q.append(neighbor)
+                if dist[neighbor] == dist[node] + 1:
+                    pred[neighbor].append(node)
+                    
+        return dist, pred
+
+    def estimate_betweenness_centrality(self, samples: int = 10) -> str:
+        """
+        Estimate the vertex with the highest betweenness centrality.
+        :param samples: The number of vertices to sample
+        :return: The vertex with the highest estimated betweenness centrality
+        """
+        vertices = list(self._graph.keys())
+        sampled_vertices = random.sample(vertices, samples)
+        
+        betweenness = defaultdict(float)
+        
+        for vertex in tqdm(sampled_vertices):
+            # Get shortest paths and predecessor lists from the current vertex
+            dist, pred = self.bfs_shortest_paths(vertex)
+            
+            # Initialize the dependencies
+            delta = {v: 0 for v in self._graph}
+            
+            # Perform accumulation of dependencies in reverse order
+            stack = [v for v in vertices if dist[v] < float('inf')]
+            stack.sort(key=lambda v: -dist[v])
+            
+            for w in stack:
+                coeff = (1 + delta[w]) / len(pred[w]) if pred[w] else 1
+                for v in pred[w]:
+                    delta[v] += dist[v] / dist[w] * coeff
+                if w != vertex:
+                    betweenness[w] += delta[w]
+        
+        # Find the vertex with the highest betweenness centrality
+        max_vertex = max(betweenness, key=betweenness.get)
+        return max_vertex
