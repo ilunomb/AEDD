@@ -158,7 +158,7 @@ class Graph:
         sampled_vertices = random.sample(vertices, samples)
 
         start_time = time.time()
-        for vertex in sampled_vertices:
+        for vertex in tqdm(sampled_vertices, desc="Estimating shortest paths", unit="vertex"):
             self.bfs(vertex)
         end_time = time.time()
 
@@ -179,7 +179,7 @@ class Graph:
         
             vertex = random.choice(vertices)
 
-            for _ in range(samples):
+            for _ in tqdm(range(100), desc="Estimating diameter", unit="iteration"):
                 _, dist = self.bfs(vertex)
                 
                 dist = {k: v for k, v in dist.items() if v < float('inf')}
@@ -268,7 +268,7 @@ class Graph:
         c = 0
         triangles = []
 
-        for u in self._graph:
+        for u in tqdm(self._graph, desc="Counting cycle triangles", unit="vertex"):
             for v in self.get_neighbors(u):
                 if u < v:
                     S = set(GT.get_neighbors(u)).intersection(self.get_neighbors(v))
@@ -298,7 +298,7 @@ class Graph:
         """
         undirected_graph = self.make_copy_graph_undirected()
         count = 0
-        for vertex in self._graph:
+        for vertex in tqdm(undirected_graph._graph, desc="Counting triangles", unit="vertex"):
             neighbors = undirected_graph.get_neighbors(vertex)
             for i in range(len(neighbors)):
                 for j in range(i + 1, len(neighbors)):
@@ -327,7 +327,7 @@ class Graph:
                     return []
         return []
 
-    def has_k_cycle(self, k=3, timeout=10):
+    def has_k_cycle(self, k=3, timeout=30):
         recStack = {}
         start = time.time()
         for node in tqdm(self._graph, desc="Checking for cycles of length " + str(k)):
@@ -362,151 +362,6 @@ class Graph:
     
         binary_search_time(2, len(vertices))
         return circumference[0]
-    
-    # def _strong_connect(self, vertex: str) -> None:
-    #     """
-    #     Non-recursive helper function for Tarjan's algorithm to find strongly connected components
-    #     """
-    #     stack = [(vertex, 0)]
-    #     visited = set()
-        
-    #     while stack:
-    #         v, index = stack[-1]
-            
-    #         if v not in visited:
-    #             visited.add(v)
-    #             self._indices[v] = self._index
-    #             self._low_links[v] = self._index
-    #             self._index += 1
-    #             self._stack.append(v)
-    #             self._on_stack.add(v)
-            
-    #         neighbors = self.get_neighbors(v)
-            
-    #         if index < len(neighbors):
-    #             neighbor = neighbors[index]
-    #             stack[-1] = (v, index + 1)
-                
-    #             if neighbor not in self._indices:
-    #                 stack.append((neighbor, 0))
-    #             elif neighbor in self._on_stack:
-    #                 self._low_links[v] = min(self._low_links[v], self._indices[neighbor])
-    #         else:
-    #             if self._low_links[v] == self._indices[v]:
-    #                 scc = set()
-    #                 while True:
-    #                     w = self._stack.pop()
-    #                     self._on_stack.remove(w)
-    #                     scc.add(w)
-    #                     if w == v:
-    #                         break
-    #                 self._sccs.append(scc)
-    #             stack.pop()
-    #             if stack:
-    #                 w, _ = stack[-1]
-    #                 self._low_links[w] = min(self._low_links[w], self._low_links[v])
-
-    # def find_strongly_connected_components(self) -> List[Set[str]]:
-    #     """
-    #     Finds and returns all strongly connected components
-    #     """
-    #     self._index = 0
-    #     self._stack = []
-    #     self._indices = {}
-    #     self._low_links = {}
-    #     self._on_stack = set()
-    #     self._sccs = []
-
-    #     for vertex in self._graph:
-    #         if vertex not in self._indices:
-    #             self._strong_connect(vertex)
-
-    #     return self._sccs
-
-    # def largest_strongly_connected_component(self) -> int:
-    #     """
-    #     Returns the size of the largest strongly connected component
-    #     """
-    #     sccs = self.find_strongly_connected_components()
-    #     return max(len(scc) for scc in sccs) if sccs else 0
-
-    # def number_of_strongly_connected_components(self) -> int:
-    #     """
-    #     Returns the number of strongly connected components
-    #     """
-    #     sccs = self.find_strongly_connected_components()
-    #     return len(sccs)
-    
-    # def make_udirected_graph_of_scc(self, scc: Set[str]) -> 'Graph':
-    #     """
-    #     Creates an undirected graph of the strongly connected component
-    #     """
-    #     undirected_graph = Graph()
-    #     for vertex in scc:
-    #         undirected_graph.add_vertex(vertex, self._graph[vertex]['data'])
-    #     for vertex in scc:
-    #         for neighbor in self._graph[vertex]['neighbors']:
-    #             if neighbor in scc:
-    #                 undirected_graph.add_edge(vertex, neighbor)
-    #     return undirected_graph
-    
-    # def dfs_find_cycles_in_scc(self, start_vertex: str) -> List[List[str]]:
-    #     """
-    #     Perform DFS from the start vertex to find all cycles including this vertex.
-    #     :param start_vertex: The start vertex for the DFS
-    #     :param scc: The strongly connected component
-    #     :return: List of cycles found
-    #     """
-    #     stack = [(start_vertex, [start_vertex])]
-    #     cycles = []
-
-    #     while stack:
-    #         (vertex, path) = stack.pop()
-    #         for neighbor in self.get_neighbors(vertex):
-    #             if neighbor == start_vertex and len(path) > 2:
-    #                 cycles.append(path)
-    #             elif neighbor not in path:
-    #                 stack.append((neighbor, path + [neighbor]))
-        
-    #     return cycles
-    
-    # def check_cycle(self, cycle: List[str]) -> bool:
-    #     """
-    #     Check if a cycle is valid
-    #     """
-    #     for i in range(len(cycle)):
-    #         if not self.edge_exists(cycle[i], cycle[(i + 1) % len(cycle)]):
-    #             return False
-    
-    # def max_scc_cycle(self) -> Tuple[int, List[str]]:
-    #     """
-    #     Estimate the circumference of the graph by finding the largest cycle in the largest strongly connected component
-    #     """
-    #     sccs = self.find_strongly_connected_components()
-    #     if not sccs:
-    #         return 0
-        
-    #     sccs = sorted(sccs, key=len, reverse=True)
-
-    #     max_cycle_length = 0
-    #     max_cycle = []
-        
-    #     while len(sccs) > 0:
-        
-    #         largest_scc = sccs.pop(0)
-    #         undirected_graph = self.make_udirected_graph_of_scc(largest_scc)
-
-    #         cycles = undirected_graph.dfs_find_cycles_in_scc(start_vertex=random.choice(list(largest_scc)))
-
-    #         for cycle in cycles:
-    #             if self.check_cycle(cycle):
-    #                 max_cycle_length = max(max_cycle_length, len(cycle))
-    #                 max_cycle = max(max_cycle, cycle, key=len)
-
-    #         #remove the scc that have less vertices than the current max_cycle_length
-    #         sccs = [scc for scc in sccs if len(scc) >= max_cycle_length]
-
-    #     return max_cycle_length, max_cycle
     
     def average_clustering_coefficient_undirected(self) -> float:
         """
